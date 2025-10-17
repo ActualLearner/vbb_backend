@@ -1,0 +1,58 @@
+services:
+
+  web:
+    build:
+      context: .
+      target: dev
+    ports:
+      - 8000:8000
+    env_file:
+      - .env
+    depends_on:
+      db:
+        condition: service_healthy
+    volumes:
+      - .:/app
+
+  db:
+    image: postgres:16
+    env_file:
+      - .env
+    volumes:
+      - postgresql_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  # --- LINTING & FORMATTING SERVICES ---
+
+  lint:
+    build:
+      context: .
+      target: dev
+    command: sh -c "./scripts/lint.sh"
+    volumes:
+      - ${PWD}:/app/
+
+  # --- TESTING SERVICE ---
+
+  test:
+    build:
+      context: .
+      target: dev
+    command: pytest
+    env_file:
+      - .env
+    # It's good practice to use a separate test DB name
+    environment:
+      - DATABASE_URL=postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}_test
+    depends_on:
+      - db
+
+
+volumes:
+  postgresql_data:
+

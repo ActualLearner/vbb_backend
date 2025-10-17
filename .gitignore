@@ -1,0 +1,80 @@
+# .gitignore
+
+# Byte-compiled / optimized / DLL files
+# -------------------------------------------------------------------
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# C extensions
+*.so
+
+# Distribution / packaging
+# -------------------------------------------------------------------
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# Virtual Environments
+# -------------------------------------------------------------------
+.venv/
+venv/
+src/venv/
+ENV/
+.env
+env/
+env.bak/
+venv.bak/
+
+# Django stuff
+# -------------------------------------------------------------------
+*.log
+local_settings.py
+db.sqlite3
+db.sqlite3-journal
+
+# Environment variables
+# -------------------------------------------------------------------
+.env
+.env.*
+!.env.example
+
+# Pytest
+# -------------------------------------------------------------------
+.pytest_cache/
+.coverage
+.coverage.*
+htmlcov/
+*.cover
+
+# IDE / Editor folders
+# -------------------------------------------------------------------
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS-generated files
+# -------------------------------------------------------------------
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db

@@ -1,0 +1,41 @@
+# Black Configuration
+[tool.black]
+line-length = 88
+target-version = ['py312']
+exclude = '''
+/(
+    \.git
+  | \.hg
+  | \.mypy_cache
+  | \.tox
+  | \.venv
+  | venv
+  | _build
+  | buck-out
+  | build
+  | dist
+  | migrations
+)/
+'''
+
+# Isort Configuration
+[tool.isort]
+profile = "black"
+line_length = 88
+skip_glob = ["**/venv/*", "**/migrations/*"]
+
+# Flake8 Configuration
+[tool.flake8]
+max-line-length = 88
+extend-ignore = [
+  "E203"
+]
+exclude = [
+  ".git",
+  "__pycache__",
+  ".pytest_cache",
+  "docker",
+  "migrations",
+  "venv",
+  "src/venv",
+]
