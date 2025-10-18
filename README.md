@@ -1,6 +1,10 @@
 <div align="center">
 
-<img src="https://user-images.githubusercontent.com/835384/201221132-243550bb-d68f-4809-9b4a-a111a1d2932b.png" alt="Logo" width="120" height="120">
+<svg width="120" height="120" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+  <path fill="#D92C2C" d="M50 0 C25 25, 25 50, 50 100 C75 50, 75 25, 50 0 Z" />
+  <rect x="42" y="28" width="16" height="44" rx="3" fill="white" />
+  <rect x="28" y="42" width="44" height="16" rx="3" fill="white" />
+</svg>
 
 # Virtual Blood Bank (VBB) - Backend API
 
@@ -49,7 +53,7 @@ If you're coming from a pure Django background, some parts of this project's str
 
 *   **Backend:** [Django](https://www.djangoproject.com/), [Django REST Framework](https://www.django-rest-framework.org/)
 *   **Database:** [PostgreSQL](https://www.postgresql.org/)
-*   **Authentication:** [django-allauth](https://django-allauth.readthedocs.io/en/latest/) (Headless API), [djangorestframework-simplejwt](https://django-rest-framework-simplejwt.readthedocs.io/en/latest/)
+*   **Authentication:** [django-allauth](https://django-allauth.readthedocs.io/en/latest/) (Headless API for Session & Token Auth)
 *   **Containerization:** [Docker](https://www.docker.com/) & Docker Compose
 *   **Task Runner:** [GNU Make](https://www.gnu.org/software/make/)
 *   **Configuration:** `django-environ`
@@ -57,12 +61,13 @@ If you're coming from a pure Django background, some parts of this project's str
 
 ## 🚀 Getting Started: A 5-Minute Setup
 
-### Prerequisites
+### Step 0: Install Prerequisites
 
-*   You must have **Docker** and **Docker Compose** installed.
-*   You must have `git` installed.
+Before you begin, ensure you have the following installed on your system:
+*   **Git:** For cloning the repository.
+*   **Docker Desktop:** This is the easiest way to get both Docker and Docker Compose. You can download it from the [**official Docker website**](https://www.docker.com/products/docker-desktop/).
 
-### Installation
+### Installation Steps
 
 1.  **Clone the Repository**
     ```sh
@@ -171,7 +176,6 @@ Use these `make` commands to manage your environment. **Run `make help` for a fu
 | Command | Description |
 | :--- | :--- |
 | `make format` | 🎨 Auto-formats all Python code with `black` and `isort`. |
-| `make lint` | 🔎 Checks your code for style issues and errors with `flake8`. |
 | `make migrate` | 🏃 Runs any pending database migrations. |
 | `make superuser`| 👑 Creates a new Django superuser account. |
 | `make shell` | 💻 Opens an interactive shell inside the Django container. |
