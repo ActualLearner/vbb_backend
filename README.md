@@ -21,7 +21,7 @@
 
 Welcome to the Virtual Blood Bank (VBB) project! This repository contains the backend API that drives the VBB mobile app. Our goal is to create a reliable platform for healthcare workers in rural areas to manage blood inventory and request blood from nearby facilities, ultimately saving lives.
 
-This document will guide you through the project's structure, the tools we use, and how to get everything running smoothly.
+The API now includes a robust, **nested resource structure** and a **stateful blood request lifecycle**, enabling complex inter-facility coordination.
 
 ## 🧠 Project Philosophy & Key Concepts
 
@@ -49,14 +49,13 @@ If you're coming from a pure Django background, some parts of this project's str
 
 *   **Backend:** [Django](https://www.djangoproject.com/), [Django REST Framework](https://www.django-rest-framework.org/)
 *   **Database:** [PostgreSQL](https://www.postgresql.org/)
+*   **Authentication:** [django-allauth](https://django-allauth.readthedocs.io/en/latest/) (Headless API), [djangorestframework-simplejwt](https://django-rest-framework-simplejwt.readthedocs.io/en/latest/)
 *   **Containerization:** [Docker](https://www.docker.com/) & Docker Compose
 *   **Task Runner:** [GNU Make](https://www.gnu.org/software/make/)
 *   **Configuration:** `django-environ`
 *   **Code Quality:** `flake8` (Linting), `black` (Formatting), `isort` (Import Sorting)
 
 ## 🚀 Getting Started: A 5-Minute Setup
-
-Follow these steps to get the project running on your local machine.
 
 ### Prerequisites
 
@@ -72,32 +71,93 @@ Follow these steps to get the project running on your local machine.
     ```
 
 2.  **Create the Environment File**
-    This file holds our secret keys and database credentials. It's ignored by Git for security.
     ```sh
     cp .env.example .env
     ```
-    *(The default values in the `.env` file are fine for local development, so you don't need to change them.)*
+    *(The default values are fine for local development.)*
 
-3.  **Run the Automated Setup Command**
-    This single command uses our `Makefile` to build the Docker containers, start the services, and run the initial database migrations.
+3.  **Run the Automated Setup**
+    This single command builds the Docker containers, starts the services, and runs initial migrations and data seeding.
     ```sh
     make setup
     ```
 
-4.  **Create a Superuser**
-    You'll need an admin account to access the Django Admin interface.
+4.  **Create an Admin Superuser**
+    You'll need an admin account to activate new users.
     ```sh
     make superuser
     ```
-    Follow the prompts to set your username, email, and password.
 
-✅ **Setup Complete!** The application is now running in the background.
-*   **Browsable API:** [http://127.0.0.1:8000/api/v1/](http://127.0.0.1:8000/api/v1/)
+✅ **Setup Complete!** The application is now running.
+*   **Testing UI (Login):** [http://127.0.0.1:8000/](http://127.0.0.1:8000/)
+*   **Browsable API Root:** [http://127.0.0.1:8000/api/v1/](http://127.0.0.1:8000/api/v1/)
 *   **Django Admin:** [http://127.0.0.1:8000/admin/](http://127.0.0.1:8000/admin/)
+
+---
+
+## 👤 User Flows for Testing
+
+For development and testing of the API, simple login and signup pages are provided. These are **not** intended to be the final frontend, but are essential tools for interacting with the browsable API as an authenticated user.
+
+### New User Signup & Activation Flow
+
+1.  **Navigate to Signup:** Go to [http://127.0.0.1:8000/signup/](http://127.0.0.1:8000/signup/).
+2.  **Fill the Form:** Enter a username, email, password, and select the facility you will be representing from the dropdown.
+3.  **Verify Email:** The system will send a verification link to the email address. Click it. (For local development, emails are printed to the Docker logs: run `make logs`).
+4.  **Admin Approval (Crucial Step):**
+    *   Log in to the Django Admin (`/admin/`) with your superuser account.
+    *   Go to "Users", find the new user, and click on them.
+    *   Check the **"Active"** box.
+    *   Verify their **Facility** is correctly assigned.
+    *   Click "Save".
+
+The user is now fully active and can log in.
+
+### Existing User Login
+
+1.  **Navigate to Login:** Go to [http://127.0.0.1:8000/](http://127.0.0.1:8000/).
+2.  **Enter Credentials:** Use the email and password of an active user.
+3.  **Access API:** Upon successful login, you are redirected to the browsable API root. Your browser session is now authenticated, and you can interact with the API according to your user's permissions.
+
+---
+
+## 🗺️ API Endpoints
+
+### Top-Level Resources
+
+| Method | Endpoint | Description | Permissions |
+| :--- | :--- | :--- | :--- |
+| `GET` | `/api/v1/facilities/` | Get a list of all health facilities. | Authenticated |
+| `GET` | `/api/v1/users/` | Get a list of all users. | Admin Only |
+| `GET` | `/api/v1/blood-requests/`| Get a list of all blood requests in the system. | Authenticated |
+| `POST`| `/api/v1/blood-requests/`| Create a new blood request. | Authenticated |
+
+### Nested Facility Resources
+
+| Method | Endpoint | Description | Permissions |
+| :--- | :--- | :--- | :--- |
+| `GET` | `/api/v1/facilities/{id}/inventory/` | Get blood units for a specific facility. Supports filtering by `?blood_type=`. | Authenticated |
+| `POST`| `/api/v1/facilities/{id}/inventory/` | Add a new blood unit to a facility's inventory. | Facility Representative |
+| `GET` | `/api/v1/facilities/{id}/inventory-summary/`| Get an aggregated count of blood units by type for a facility. | Authenticated |
+| `GET` | `/api/v1/facilities/{id}/staff/` | Get a list of all users registered to a specific facility. | Authenticated |
+
+### Blood Request Lifecycle Actions
+
+These are `POST` requests made to specific URLs to transition the state of a blood request.
+
+| Action | Endpoint | Description | Performed By |
+| :--- | :--- | :--- | :--- |
+| **Accept** | `/api/v1/blood-requests/{id}/accept/` | Approves a request and deducts blood units from inventory. | User from **fulfilling** facility |
+| **Reject** | `/api/v1/blood-requests/{id}/reject/` | Denies a pending request. | User from **fulfilling** facility |
+| **Ship** | `/api/v1/blood-requests/{id}/ship/` | Marks the accepted units as in-transit. | User from **fulfilling** facility |
+| **Receive**| `/api/v1/blood-requests/{id}/receive/`| Confirms receipt and adds units to the requesting facility's inventory. | User from **requesting** facility |
+| **Cancel** | `/api/v1/blood-requests/{id}/cancel/` | Cancels a request that has not yet been accepted. | User from **requesting** facility |
+
+---
 
 ## ⚙️ Daily Development Workflow
 
-Use these `make` commands to manage your development environment. **Run `make help` for a full list of commands and their descriptions.**
+Use these `make` commands to manage your environment. **Run `make help` for a full list.**
 
 ### Environment Management
 | Command | Description |
@@ -107,45 +167,32 @@ Use these `make` commands to manage your development environment. **Run `make he
 | `make logs` | 📜 Shows the real-time logs from the Django server. (Press `Ctrl+C` to exit). |
 | `make down-vol` | 💥 **(Destructive!)** Stops services and deletes the database volume. |
 
-### Code Quality
+### Code Quality & Database
 | Command | Description |
 | :--- | :--- |
 | `make format` | 🎨 Auto-formats all Python code with `black` and `isort`. |
 | `make lint` | 🔎 Checks your code for style issues and errors with `flake8`. |
-| `make qa` | ✅ Runs all quality checks (linting and tests). |
-
-### Database & Django Commands
-| Command | Description |
-| :--- | :--- |
 | `make migrate` | 🏃 Runs any pending database migrations. |
 | `make superuser`| 👑 Creates a new Django superuser account. |
 | `make shell` | 💻 Opens an interactive shell inside the Django container. |
-| `make test` | 🧪 Runs the project's test suite. |
-
-> **Example Workflow:** If you change a model in `apps/inventory/models.py`, you would:
-> 1.  Run `docker compose exec web python manage.py makemigrations inventory` (This is one command not in the `Makefile` as it needs the app name).
-> 2.  Run `make migrate` to apply the new migration.
 
 ## 📁 Project Structure
 
 ```
 vbb_project/
 ├── .env                  # Environment variables (GIT IGNORED)
-├── .flake8               # Configuration file for the flake8 linter
 ├── apps/                 # Location for all Django apps (our code)
-│   ├── users/            # Handles User, Facility models and authentication
-│   └── inventory/        # Handles BloodUnit and BloodRequest models
-├── config/               # Project-level configuration (the "main" app)
+│   ├── users/            # Handles User, Facility models, auth forms
+│   └── inventory/        # Handles BloodUnit, BloodRequest models, API logic
+├── config/               # Project-level configuration
 │   ├── settings/         # Split settings files (base.py, dev.py, prod.py)
 │   ├── urls.py           # Root URL configuration
 │   └── ...
-├── scripts/              # Helper shell scripts used by the Makefile
+├── templates/            # HTML templates for login/signup test pages
 ├── compose.yaml          # Defines our services (web, db, etc.) for Docker
 ├── Dockerfile            # Blueprint for building our Django container
 ├── Makefile              # Shortcuts for our development commands
-├── manage.py             # Django's command-line utility
-├── pyproject.toml        # Configuration for tools like black and isort
-├── requirements.txt      # List of Python dependencies for pip
+├── requirements.txt      # List of Python dependencies
 └── README.md             # You are here!
 ```
 
