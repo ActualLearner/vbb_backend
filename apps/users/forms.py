@@ -1,37 +1,38 @@
 from django import forms
 from django.core.exceptions import ValidationError
+from django.contrib.auth import get_user_model
+
+User = get_user_model()
 
 
 class CustomSignupAddonForm(forms.Form):
     """
-    This is an add-on form for the signup process, as documented by
-    the ACCOUNT_SIGNUP_FORM_CLASS setting. It handles any fields
-    beyond what the default allauth form handles.
+    This is the add-on form for the django-allauth signup process,
+    as specified by the ACCOUNT_SIGNUP_FORM_CLASS setting. It handles
+    the custom 'role' field.
     """
 
-    role = forms.CharField(max_length=15, required=False)
+    # Use a ChoiceField that gets its options directly from the User model.
+    # This is more robust than a hardcoded list.
+    role = forms.ChoiceField(choices=User.Role.choices, required=False)
 
-    def clean_role(self):
-        ROLES = {"admin", "manager", "member"}
+    # We don't need a custom clean_role method anymore because
+    # the ChoiceField handles the validation for us.
 
-        role = self.cleaned_data.get("role")
-        if role not in ROLES:
-            raise ValidationError("Invalid Role")
-
-        return role
-
-    # Override clean method to assign default value to role
     def clean(self):
+        """
+        Override the clean method to assign a default value to the role
+        if one isn't provided.
+        """
         cleaned_data = super().clean()
-
         if not cleaned_data.get("role"):
-            cleaned_data["role"] = "member"
-
+            # Set the default role if none was selected.
+            cleaned_data["role"] = User.Role.NURSE  # Or whichever you prefer as default
         return cleaned_data
 
     def signup(self, request, user):
         """
-        This method is called after the user is created by the main form.
+        This method is called after the user is created by the main allauth form.
         We are passed the new user instance and can now save our
         additional data to it.
         """

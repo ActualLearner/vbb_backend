@@ -16,8 +16,18 @@ Including another URLconf
 """
 
 from django.contrib import admin
-from django.urls import path
+from django.urls import path, include
+from rest_framework.routers import DefaultRouter
+from inventory.urls import router as inventory_router
+from users.urls import router as users_router
+
+combined_router = DefaultRouter()
+combined_router.registry.extend(inventory_router.registry)
+combined_router.registry.extend(users_router.registry)
 
 urlpatterns = [
     path("admin/", admin.site.urls),
+    path("accounts/", include("allauth.urls")),
+    path("_allauth/", include("allauth.headless.urls")),
+    path("api/v1/", include(combined_router.urls)),
 ]
