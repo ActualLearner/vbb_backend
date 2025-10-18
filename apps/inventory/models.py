@@ -28,10 +28,11 @@ class BloodUnit(models.Model):
 class BloodRequest(models.Model):
     class RequestStatus(models.TextChoices):
         PENDING = "PENDING", "Pending"
-        APPROVED = "APPROVED", "Approved"
+        ACCEPTED = "ACCEPTED", "Accepted"
+        REJECTED = "REJECTED", "Rejected"
+        IN_TRANSIT = "IN_TRANSIT", "In Transit"
         FULFILLED = "FULFILLED", "Fulfilled"
         CANCELLED = "CANCELLED", "Cancelled"
-        REJECTED = "REJECTED", "Rejected"
 
     requesting_facility = models.ForeignKey(
         Facility, on_delete=models.PROTECT, related_name="sent_requests"
