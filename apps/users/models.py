@@ -33,9 +33,8 @@ class User(AbstractUser):
 
     # Using a TextChoices class makes our role choices clean and reusable
     class Role(models.TextChoices):
-        DOCTOR = "DOCTOR", "Doctor"
-        NURSE = "NURSE", "Nurse"
-        ADMIN = "ADMIN", "Administrator"  # e.g., Hospital Administrator
+        ADMIN = "ADMIN", "System Administrator"
+        FACILITY_REPRESENTATIVE = "FACILITY_REPRESENTATIVE", "Facility Representative"
 
     role = models.CharField(max_length=50, choices=Role.choices)
 

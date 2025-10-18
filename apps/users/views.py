@@ -1,6 +1,8 @@
+from django.views.generic import TemplateView
 from rest_framework import viewsets, permissions
 from .models import Facility, User
 from .serializers import FacilitySerializer, UserSerializer
+from .permissions import IsAdminUser
 
 
 class FacilityViewSet(viewsets.ModelViewSet):
@@ -10,8 +12,7 @@ class FacilityViewSet(viewsets.ModelViewSet):
 
     queryset = Facility.objects.all().order_by("name")
     serializer_class = FacilitySerializer
-    # For now, we allow anyone to access. We will add permissions later.
-    # permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [permissions.IsAuthenticated]
 
 
 class UserViewSet(viewsets.ModelViewSet):
@@ -21,4 +22,15 @@ class UserViewSet(viewsets.ModelViewSet):
 
     queryset = User.objects.all().order_by("-date_joined")
     serializer_class = UserSerializer
-    # permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [IsAdminUser]
+
+
+# TODO: REMOVE THIS TEST VIEW LATER
+class SignupPageView(TemplateView):
+    template_name = "signup.html"
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        # This line is crucial for populating the dropdown
+        context["facilities"] = Facility.objects.all().order_by("name")
+        return context

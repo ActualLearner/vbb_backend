@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>API Login</title>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; background-color: #f8f9fa; }
+        .container { background: #fff; padding: 2rem 2.5rem; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); min-width: 320px; }
+        h1 { text-align: center; color: #343a40; margin-bottom: 1.5rem; }
+        form { display: flex; flex-direction: column; gap: 1rem; }
+        input { padding: 0.75rem; border: 1px solid #ced4da; border-radius: 4px; font-size: 1rem; }
+        button { padding: 0.75rem; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 1rem; font-weight: bold; }
+        .button-group { display: flex; gap: 1rem; }
+        .primary-button { background-color: #007bff; flex-grow: 1; }
+        .primary-button:hover { background-color: #0056b3; }
+        .secondary-button { background-color: #6c757d; }
+        .secondary-button:hover { background-color: #5a6268; }
+        #message { margin-top: 1.5rem; text-align: center; font-weight: bold; min-height: 20px; }
+        .link-footer { text-align: center; margin-top: 1.5rem; font-size: 0.9rem; }
+        .link-footer a { color: #007bff; text-decoration: none; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Login to API</h1>
+        <form id="loginForm">
+            {% csrf_token %}
+            <input type="email" id="email" placeholder="Email Address" required>
+            <input type="password" id="password" placeholder="Password" required>
+            <div class="button-group">
+                <button type="submit" class="primary-button">Login</button>
+                <button type="button" id="logoutButton" class="secondary-button">Logout</button>
+            </div>
+        </form>
+        <div id="message"></div>
+        <div class="link-footer">
+            Don't have an account? <a href="/signup/">Sign Up</a>
+        </div>
+    </div>
+
+<script>
+    const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+    const messageDiv = document.getElementById('message');
+
+    // --- Login Handler ---
+    document.getElementById('loginForm').addEventListener('submit', async (event) => {
+        event.preventDefault();
+        try {
+            const response = await fetch('/_allauth/browser/v1/auth/login', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken },
+                body: JSON.stringify({
+                    email: event.target.elements.email.value,
+                    password: event.target.elements.password.value,
+                })
+            });
+            if (response.ok) {
+                messageDiv.style.color = 'green';
+                messageDiv.innerHTML = `Success! Redirecting to the API...`;
+                setTimeout(() => window.location.href = '/api/v1/', 1000);
+            } else {
+                const data = await response.json();
+                messageDiv.style.color = 'red';
+                messageDiv.textContent = data.errors?.[0]?.message || 'Login failed.';
+            }
+        } catch (error) {
+            messageDiv.style.color = 'red';
+            messageDiv.textContent = 'Network error. Is the server running?';
+        }
+    });
+
+    // --- Logout Handler ---
+    document.getElementById('logoutButton').addEventListener('click', async () => {
+        try {
+            await fetch('/_allauth/browser/v1/auth/session', {
+                method: 'DELETE',
+                headers: { 'X-CSRFToken': csrfToken }
+            });
+            messageDiv.style.color = 'blue';
+            messageDiv.textContent = 'You have been logged out.';
+        } catch (error) {
+            messageDiv.style.color = 'red';
+            messageDiv.textContent = 'Logout failed due to a network error.';
+        }
+    });
+</script>
+</body>
+</html>
