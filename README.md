@@ -1,10 +1,6 @@
 <div align="center">
 
-<svg width="120" height="120" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
-  <path fill="#D92C2C" d="M50 0 C25 25, 25 50, 50 100 C75 50, 75 25, 50 0 Z" />
-  <rect x="42" y="28" width="16" height="44" rx="3" fill="white" />
-  <rect x="28" y="42" width="44" height="16" rx="3" fill="white" />
-</svg>
+<img src="https://user-images.githubusercontent.com/835384/201221132-243550bb-d68f-4809-9b4a-a111a1d2932b.png" alt="Logo" width="120" height="120">
 
 # Virtual Blood Bank (VBB) - Backend API
 
@@ -53,7 +49,7 @@ If you're coming from a pure Django background, some parts of this project's str
 
 *   **Backend:** [Django](https://www.djangoproject.com/), [Django REST Framework](https://www.django-rest-framework.org/)
 *   **Database:** [PostgreSQL](https://www.postgresql.org/)
-*   **Authentication:** [django-allauth](https://django-allauth.readthedocs.io/en/latest/) (Headless API for Session & Token Auth)
+*   **Authentication:** [django-allauth](https://django-allauth.readthedocs.io/en/latest/) (Headless API for Session Auth)
 *   **Containerization:** [Docker](https://www.docker.com/) & Docker Compose
 *   **Task Runner:** [GNU Make](https://www.gnu.org/software/make/)
 *   **Configuration:** `django-environ`
@@ -88,7 +84,7 @@ Before you begin, ensure you have the following installed on your system:
     ```
 
 4.  **Create an Admin Superuser**
-    You'll need an admin account to activate new users.
+    You'll need an admin account to manage data via the Django Admin interface.
     ```sh
     make superuser
     ```
@@ -102,23 +98,17 @@ Before you begin, ensure you have the following installed on your system:
 
 ## 👤 User Flows for Testing
 
-For development and testing of the API, simple login and signup pages are provided. These are **not** intended to be the final frontend, but are essential tools for interacting with the browsable API as an authenticated user.
+For development and testing, simple login and signup pages are provided. These are **not** the final frontend but are essential tools for interacting with the browsable API as an authenticated user.
 
-### New User Signup & Activation Flow
+**Note:** For ease of local development, email verification and manual admin approval are currently disabled. A new user is **active immediately** upon signup.
+
+### New User Signup Flow
 
 1.  **Navigate to Signup:** Go to [http://127.0.0.1:8000/signup/](http://127.0.0.1:8000/signup/).
-2.  **Fill the Form:** Enter a username, email, password, and select the facility you will be representing from the dropdown.
-3.  **Verify Email:** The system will send a verification link to the email address. Click it. (For local development, emails are printed to the Docker logs: run `make logs`).
-4.  **Admin Approval (Crucial Step):**
-    *   Log in to the Django Admin (`/admin/`) with your superuser account.
-    *   Go to "Users", find the new user, and click on them.
-    *   Check the **"Active"** box.
-    *   Verify their **Facility** is correctly assigned.
-    *   Click "Save".
+2.  **Fill the Form:** Enter a username, email, password, and select a facility from the dropdown.
+3.  **Login:** Upon successful submission, the account is created and is immediately active. You can now proceed directly to the login page.
 
-The user is now fully active and can log in.
-
-### Existing User Login
+### Existing User Login Flow
 
 1.  **Navigate to Login:** Go to [http://127.0.0.1:8000/](http://127.0.0.1:8000/).
 2.  **Enter Credentials:** Use the email and password of an active user.
@@ -184,6 +174,8 @@ Use these `make` commands to manage your environment. **Run `make help` for a fu
 
 ```
 vbb_project/
+├── .flake8               # Configuration file for the flake8 linter
+├── pyproject.toml        # Configuration for tools like black and isort
 ├── .env                  # Environment variables (GIT IGNORED)
 ├── apps/                 # Location for all Django apps (our code)
 │   ├── users/            # Handles User, Facility models, auth forms
