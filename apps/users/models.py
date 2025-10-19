@@ -1,4 +1,5 @@
 from django.contrib.auth.models import AbstractUser
+from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import models
 
 
@@ -6,8 +7,14 @@ class Facility(models.Model):
     """Represents a hospital, clinic, or blood bank."""
 
     name = models.CharField(max_length=255)
-    district = models.CharField(max_length=100)
-    # Using DecimalField for coordinates is good practice for accuracy
+    region = models.CharField(max_length=100)
+    zone = models.CharField(max_length=100)
+    woreda = models.PositiveIntegerField(
+        validators=[
+            MinValueValidator(1),
+            MaxValueValidator(20),  # As requested, max of 20
+        ]
+    )
     latitude = models.DecimalField(
         max_digits=9, decimal_places=6, null=True, blank=True
     )
@@ -21,7 +28,7 @@ class Facility(models.Model):
 
     def __str__(self):
         # This is what will be displayed in the Django admin panel for each facility
-        return self.name
+        return f"{self.name} (Woreda {self.woreda}, {self.zone})"
 
 
 class User(AbstractUser):

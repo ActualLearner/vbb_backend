@@ -10,7 +10,15 @@ class FacilitySerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Facility
-        fields = ["id", "name", "district", "latitude", "longitude"]
+        fields = [
+            "id",
+            "name",
+            "region",
+            "zone",
+            "woreda",
+            "latitude",
+            "longitude",
+        ]
 
 
 class UserSerializer(serializers.ModelSerializer):
