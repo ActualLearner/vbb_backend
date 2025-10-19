@@ -1,8 +1,9 @@
 from django.views.generic import TemplateView
-from rest_framework import viewsets, permissions
+from rest_framework import permissions, viewsets
+
 from .models import Facility, User
-from .serializers import FacilitySerializer, UserSerializer
 from .permissions import IsAdminUser
+from .serializers import FacilitySerializer, UserSerializer
 
 
 class FacilityViewSet(viewsets.ModelViewSet):

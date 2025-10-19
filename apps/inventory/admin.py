@@ -1,4 +1,5 @@
 from django.contrib import admin
+
 from .models import BloodRequest, BloodUnit
 
 # Register your models here.

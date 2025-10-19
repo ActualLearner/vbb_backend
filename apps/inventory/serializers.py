@@ -1,7 +1,8 @@
 from rest_framework import serializers
-from .models import BloodUnit, BloodRequest
-from users.models import Facility, User
+from users.models import Facility
 from users.serializers import FacilitySerializer  # This import now works!
+
+from .models import BloodRequest, BloodUnit
 
 
 class BloodUnitSerializer(serializers.ModelSerializer):
@@ -47,7 +48,7 @@ class BloodRequestSerializer(serializers.ModelSerializer):
             "status",
             "created_at",
         ]
-        # Status and requesting_facility are now controlled entirely by the backend logic
+        # Status & requesting_facility are now controlled entirely by the backend logic
         read_only_fields = [
             "created_at",
             "updated_at",
@@ -58,7 +59,9 @@ class BloodRequestSerializer(serializers.ModelSerializer):
 
     def validate(self, data):
         """
-        Check that the fulfilling facility has enough blood units at the time of request.
+        Check that the fulfilling facility has enough blood units
+        at the time of the request.
+
         A second check is performed at the time of acceptance.
         """
         fulfilling_facility = data.get("fulfilling_facility")
@@ -66,7 +69,8 @@ class BloodRequestSerializer(serializers.ModelSerializer):
         units_requested = data.get("units_requested")
 
         # Ensure a user isn't requesting from their own facility
-        # The view's perform_create sets the requesting_facility from the logged-in user.
+        # The view's perform_create sets the requesting_facility
+        # from the logged-in user.
         # We can access that user via the context that DRF passes to the serializer.
         requesting_user = self.context["request"].user
         if fulfilling_facility == requesting_user.facility:

@@ -1,8 +1,9 @@
-from django.urls import path, include
+from django.urls import include, path
+from inventory.views import BloodUnitViewSet, InventorySummaryViewSet
 from rest_framework.routers import DefaultRouter
 from rest_framework_nested import routers
+
 from .views import FacilityViewSet, UserViewSet
-from inventory.views import BloodUnitViewSet, InventorySummaryViewSet
 
 # A Router automatically generates the URL patterns for a ViewSet.
 router = DefaultRouter()

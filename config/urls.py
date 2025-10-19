@@ -1,16 +1,15 @@
 from django.contrib import admin
-from django.urls import path, include
-from rest_framework_nested import routers
+from django.urls import include, path
 from django.views.generic import TemplateView
-from users.views import SignupPageView
-
-# --- Import all the necessary ViewSets from your apps ---
-from users.views import FacilityViewSet, UserViewSet
 from inventory.views import (
-    BloodUnitViewSet,
     BloodRequestViewSet,
+    BloodUnitViewSet,
     InventorySummaryViewSet,
 )
+from rest_framework_nested import routers
+
+# --- Import all the necessary ViewSets from your apps ---
+from users.views import FacilityViewSet, SignupPageView, UserViewSet
 
 # --- 1. Define the Top-Level Router ---
 # This router handles /facilities/, /users/, and /blood-requests/

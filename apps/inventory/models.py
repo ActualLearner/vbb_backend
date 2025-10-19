@@ -1,5 +1,5 @@
-from django.db import models
 from django.conf import settings
+from django.db import models
 from users.models import Facility
 
 
@@ -53,5 +53,9 @@ class BloodRequest(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
-    def __str__(self):
-        return f"Request for {self.units_requested} unit(s) of {self.blood_type} from {self.requesting_facility.name}"
+
+def __str__(self):
+    return (
+        f"Request for {self.units_requested} unit(s) of {self.blood_type} "
+        f"from {self.requesting_facility.name}"
+    )

@@ -1,21 +1,20 @@
-from django.db import transaction, models
-from rest_framework import viewsets, mixins, status
+from django.db import models, transaction
+from rest_framework import mixins, status, viewsets
 from rest_framework.decorators import action
+from rest_framework.exceptions import ValidationError
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
-from rest_framework.exceptions import ValidationError
+from users.permissions import IsAdminUser
 
-from .models import BloodUnit, BloodRequest, Facility
-from .serializers import (
-    BloodUnitSerializer,
-    BloodRequestSerializer,
-    InventorySummarySerializer,
-)
-from .filters import BloodUnitFilter
+from .models import BloodRequest, BloodUnit, Facility
 
 # Import our new permissions and Django's admin permission
-from .permissions import IsRequestingFacilityUser, IsFulfillingFacilityUser
-from users.permissions import IsAdminUser
+from .permissions import IsFulfillingFacilityUser, IsRequestingFacilityUser
+from .serializers import (
+    BloodRequestSerializer,
+    BloodUnitSerializer,
+    InventorySummarySerializer,
+)
 
 
 class BloodUnitViewSet(viewsets.ModelViewSet):
@@ -111,7 +110,8 @@ class BloodRequestViewSet(viewsets.ModelViewSet):
 
         try:
             with transaction.atomic():
-                # Lock the blood units table for this facility and blood type to prevent race conditions
+                # Lock the blood units table for this facility and
+                # blood type to prevent race conditions
                 available_units = BloodUnit.objects.select_for_update().filter(
                     facility=request_obj.fulfilling_facility,
                     blood_type=request_obj.blood_type,
@@ -122,7 +122,10 @@ class BloodRequestViewSet(viewsets.ModelViewSet):
                     request_obj.save()
                     return Response(
                         {
-                            "error": "Insufficient stock to accept this request. Request has been rejected."
+                            "error": (
+                                "Insufficient stock to accept this request. "
+                                "Request has been rejected."
+                            )
                         },
                         status=status.HTTP_400_BAD_REQUEST,
                     )
@@ -229,8 +232,8 @@ class BloodRequestViewSet(viewsets.ModelViewSet):
         return Response(serializer.data)
 
 
-# The InventorySummaryViewSet remains mostly the same, but we will adapt its queryset logic
-# to handle nesting, similar to the BloodUnitViewSet.
+# The InventorySummaryViewSet remains mostly the same, but we will adapt its
+# queryset logic to handle nesting, similar to the BloodUnitViewSet.
 
 
 class InventorySummaryViewSet(mixins.ListModelMixin, viewsets.GenericViewSet):
