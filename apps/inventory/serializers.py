@@ -108,3 +108,24 @@ class InventorySummarySerializer(serializers.Serializer):
 
     class Meta:
         read_only_fields = ["facility_id", "facility_name", "blood_type", "total_units"]
+
+
+class DashboardInventorySummarySerializer(serializers.Serializer):
+    """A simple nested serializer for the inventory summary within the dashboard."""
+
+    blood_type = serializers.CharField()
+    total_units = serializers.IntegerField()
+
+
+class DashboardSerializer(serializers.Serializer):
+    """
+    Serializes the aggregated data needed for the main user dashboard.
+    This is a read-only serializer that structures the data from the DashboardAPIView.
+    """
+
+    inventory_summary = DashboardInventorySummarySerializer(many=True)
+    low_stock_alerts = serializers.ListField(child=serializers.CharField())
+    incoming_requests_count = serializers.IntegerField()
+    incoming_requests_ids = serializers.ListField(child=serializers.IntegerField())
+    outgoing_requests_count = serializers.IntegerField()
+    outgoing_requests_ids = serializers.ListField(child=serializers.IntegerField())

@@ -1,12 +1,18 @@
 from django.db import models, transaction
+from django.db.models import Count
 from rest_framework import mixins, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.exceptions import ValidationError
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from users.permissions import IsAdminUser
-
+from django.db.models import Count
+from rest_framework.views import APIView
+from rest_framework.response import Response
+from rest_framework.permissions import IsAuthenticated
 from .models import BloodRequest, BloodUnit, Facility
+from django_filters.rest_framework import DjangoFilterBackend
+from .filters import BloodUnitFilter, BloodRequestFilter
 
 # Import our new permissions and Django's admin permission
 from .permissions import IsFulfillingFacilityUser, IsRequestingFacilityUser
@@ -14,6 +20,7 @@ from .serializers import (
     BloodRequestSerializer,
     BloodUnitSerializer,
     InventorySummarySerializer,
+    DashboardSerializer,
 )
 
 
@@ -25,6 +32,8 @@ class BloodUnitViewSet(viewsets.ModelViewSet):
 
     serializer_class = BloodUnitSerializer
     permission_classes = [IsAuthenticated]
+    filter_backends = [DjangoFilterBackend]
+    filterset_class = BloodUnitFilter
 
     def get_queryset(self):
         """
@@ -70,6 +79,8 @@ class BloodRequestViewSet(viewsets.ModelViewSet):
         .order_by("-created_at")
     )
     serializer_class = BloodRequestSerializer
+    filter_backends = [DjangoFilterBackend]
+    filterset_class = BloodRequestFilter
 
     def get_permissions(self):
         """
@@ -141,7 +152,22 @@ class BloodRequestViewSet(viewsets.ModelViewSet):
                 request_obj.status = BloodRequest.RequestStatus.ACCEPTED
                 request_obj.save()
 
-                # TODO: Implement push notification logic here
+                # --- LOW STOCK ALERT LOGIC (REPLACES TODO) ---
+                # After deleting units, check the remaining stock.
+                remaining_units = BloodUnit.objects.filter(
+                    facility=request_obj.fulfilling_facility,
+                    blood_type=request_obj.blood_type,
+                ).count()
+
+                if remaining_units <= self.DashboardAPIView.LOW_STOCK_THRESHOLD:
+                    print(f"--- NOTIFICATION TRIGGERED ---")
+                    print(f"  Event: Low Stock Alert")
+                    print(f"  To: Facility '{request_obj.fulfilling_facility.name}'")
+                    print(
+                        f"  Details: Stock for blood type {request_obj.blood_type} is low ({remaining_units} units remaining)."
+                    )
+                    print(f"-----------------------------")
+                    # send_low_stock_notification(request_obj.fulfilling_facility, request_obj.blood_type)
 
                 serializer = self.get_serializer(request_obj)
                 return Response(serializer.data)
@@ -259,3 +285,73 @@ class InventorySummaryViewSet(mixins.ListModelMixin, viewsets.GenericViewSet):
             return queryset.filter(facility__id=facility_pk)
 
         return queryset
+
+
+class DashboardAPIView(APIView):
+    """
+    Provides a single endpoint for all data required for the user's dashboard.
+    Fulfills SRS requirements 3.1.1.3.2 through 3.1.1.3.5.
+    """
+
+    permission_classes = [IsAuthenticated]
+
+    # This can be adjusted later based on clinical requirements
+    LOW_STOCK_THRESHOLD = 5
+
+    def get(self, request, *args, **kwargs):
+        user = self.request.user
+        facility = user.facility
+
+        if not facility:
+            # Handle cases where a superuser or unassigned user hits the endpoint
+            return Response(
+                {"error": "User is not associated with a facility."}, status=400
+            )
+
+        # 1. Get Inventory Summary and Low Stock Alerts for the user's facility
+        inventory_summary_qs = (
+            BloodUnit.objects.filter(facility=facility)
+            .values("blood_type")
+            .annotate(total_units=Count("id"))
+            .order_by("blood_type")
+        )
+
+        low_stock_alerts = [
+            item["blood_type"]
+            for item in inventory_summary_qs
+            if item["total_units"] <= self.LOW_STOCK_THRESHOLD
+        ]
+
+        # 2. Get active Incoming Requests (requests needing this facility's action)
+        incoming_requests_qs = BloodRequest.objects.filter(
+            fulfilling_facility=facility, status=BloodRequest.RequestStatus.PENDING
+        )
+        incoming_requests_count = incoming_requests_qs.count()
+        incoming_requests_ids = list(incoming_requests_qs.values_list("id", flat=True))
+
+        # 3. Get active Outgoing Requests (requests this facility has made)
+        active_outgoing_statuses = [
+            BloodRequest.RequestStatus.PENDING,
+            BloodRequest.RequestStatus.ACCEPTED,
+            BloodRequest.RequestStatus.IN_TRANSIT,
+        ]
+        outgoing_requests_qs = BloodRequest.objects.filter(
+            requesting_facility=facility, status__in=active_outgoing_statuses
+        )
+        outgoing_requests_count = outgoing_requests_qs.count()
+        outgoing_requests_ids = list(outgoing_requests_qs.values_list("id", flat=True))
+
+        # 4. Assemble the complete data payload
+        data = {
+            "inventory_summary": list(inventory_summary_qs),
+            "low_stock_alerts": low_stock_alerts,
+            "incoming_requests_count": incoming_requests_count,
+            "incoming_requests_ids": incoming_requests_ids,
+            "outgoing_requests_count": outgoing_requests_count,
+            "outgoing_requests_ids": outgoing_requests_ids,
+        }
+
+        # 5. Serialize and return the final, structured response
+        serializer = DashboardSerializer(data=data)
+        serializer.is_valid(raise_exception=True)
+        return Response(serializer.data)
