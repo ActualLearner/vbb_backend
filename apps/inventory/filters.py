@@ -1,24 +1,51 @@
 from django_filters import rest_framework as filters
-
-from .models import BloodUnit, Facility
+from users.models import Facility
+from .models import BloodUnit, BloodRequest
 
 
 class BloodUnitFilter(filters.FilterSet):
     """
-    FilterSet for the BloodUnit model.
+    Simplified FilterSet for the BloodUnit model for use with the
+    nested /facilities/{id}/inventory/ endpoint.
     """
 
-    # This creates a filter for the 'blood_type' field that uses the
-    # choices defined in the BloodUnit model.
+    # The blood_type filter is still very useful.
     blood_type = filters.ChoiceFilter(choices=BloodUnit.BloodType.choices)
-
-    # This creates a filter for the 'facility' ForeignKey. It allows you
-    # to filter by the facility's ID (e.g., ?facility=1).
-    facility = filters.ModelChoiceFilter(
-        queryset=Facility.objects.all(), field_name="facility", to_field_name="id"
-    )
 
     class Meta:
         model = BloodUnit
-        # The 'fields' list defines which fields we can filter on.
-        fields = ["blood_type", "facility"]
+        # The 'facility' field is removed because the URL handles facility filtering.
+        fields = ["blood_type"]
+
+
+class BloodRequestFilter(filters.FilterSet):
+    """
+    FilterSet for the BloodRequest model.
+    """
+
+    # Allows filtering by multiple statuses, e.g., ?status=PENDING&status=ACCEPTED
+    status = filters.MultipleChoiceFilter(choices=BloodRequest.RequestStatus.choices)
+
+    # A custom filter field to easily get 'incoming' or 'outgoing' requests
+    # based on the logged-in user's facility.
+    type = filters.CharFilter(method="filter_by_type")
+
+    class Meta:
+        model = BloodRequest
+        fields = ["status", "blood_type"]
+
+    def filter_by_type(self, queryset, name, value):
+        """
+        Custom filter method to filter requests by 'incoming' or 'outgoing'
+        relative to the user's facility.
+        """
+        user = self.request.user
+        if not user.facility:
+            return queryset.none()
+
+        if value.lower() == "incoming":
+            return queryset.filter(fulfilling_facility=user.facility)
+        elif value.lower() == "outgoing":
+            return queryset.filter(requesting_facility=user.facility)
+
+        return queryset
