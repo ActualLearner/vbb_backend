@@ -1,12 +1,13 @@
-# Makefile for the TeamFlow project
-# ----------------------------------
-# This file provides commands for managing the development environment and running tasks.
+# Makefile for the Virtual Blood Bank (VBB) backend
+# -------------------------------------------------
+# Commands for the local Docker (compose) development environment.
+# Production deploys use the Dockerfile directly (Render), not compose.
 
 # Use a variable for the compose file to avoid repetition
 COMPOSE_FILE = -f compose.yaml
 
 # Phony targets tell Make that these are not files. This is a best practice.
-.PHONY: help up up-build down down-vol setup migrate test shell logs format lint
+.PHONY: help up up-build down down-vol setup migrate test shell logs format lint qa superuser
 
 # --- High-Level Commands ---
 
@@ -57,7 +58,7 @@ migrate: ## 🏃 Run database migrations
 	@echo "Running database migrations..."
 	docker compose $(COMPOSE_FILE) exec web python manage.py migrate
 
-test: ## 🧪 Run the pytest test suite
+test: ## 🧪 Run the Django test suite
 	@echo "Running tests..."
 	docker compose $(COMPOSE_FILE) run --rm test
 
