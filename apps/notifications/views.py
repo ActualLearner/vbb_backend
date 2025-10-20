@@ -1,3 +1,1 @@
-from django.shortcuts import render
-
-# Create your views here.
+# HTTP views live in notifications/api/views.py.

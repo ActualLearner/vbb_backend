@@ -1,3 +1,1 @@
-from django.contrib import admin
-
-# Register your models here.
+# Notification models are managed via the API and dispatcher, not Django admin.
