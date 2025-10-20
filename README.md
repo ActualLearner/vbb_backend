@@ -55,9 +55,20 @@ If you're coming from a pure Django background, some parts of this project's str
 *   **Authentication:** [django-allauth](https://django-allauth.readthedocs.io/en/latest/) (Headless API for Session Auth)
 *   **API Filtering:** [django-filter](https://django-filter.readthedocs.io/en/stable/)
 *   **Containerization:** [Docker](https://www.docker.com/) & Docker Compose
+*   **Static Files:** [WhiteNoise](https://whitenoise.readthedocs.io/) (served from the app container in production)
 *   **Task Runner:** [GNU Make](https://www.gnu.org/software/make/)
 *   **Configuration:** `django-environ`
 *   **Code Quality:** `flake8` (Linting), `black` (Formatting), `isort` (Import Sorting)
+*   **CI/CD:** GitHub Actions (lint + test + Docker build); deployable to [Render](https://render.com/)
+
+## 📚 Documentation Structure
+
+Project documentation is organized by purpose:
+
+*   **Domain Context:** [docs/CONTEXT.md](docs/CONTEXT.md)
+*   **Architecture Decisions (ADRs):** `docs/architecture/decisions/`
+*   **Product Specs (SRS/SDS/Phases):** `docs/product/`
+*   **Documentation index:** `docs/README.md`
 
 ## 🚀 Getting Started: A 5-Minute Setup
 
@@ -72,7 +83,7 @@ Before you begin, ensure you have the following installed on your system:
 1.  **Clone the Repository**
     ```sh
     git clone <your-repository-url>
-    cd vbb_project
+    cd vbb_backend
     ```
 
 2.  **Create the Environment File**
@@ -178,23 +189,95 @@ Use these `make` commands to manage your environment. **Run `make help` for a fu
 ## 📁 Project Structure
 
 ```
-vbb_project/
-├── .flake8               # Configuration file for the flake8 linter
-├── pyproject.toml        # Configuration for tools like black and isort
-├── .env                  # Environment variables (GIT IGNORED)
-├── apps/                 # Location for all Django apps (our code)
-│   ├── users/            # Handles User, Facility models, auth forms
-│   └── inventory/        # Handles BloodUnit, BloodRequest models, API logic
-├── config/               # Project-level configuration
-│   ├── settings/         # Split settings files (base.py, dev.py, prod.py)
-│   ├── urls.py           # Root URL configuration
-│   └── ...
-├── templates/            # HTML templates for login/signup test pages
-├── compose.yaml          # Defines our services (web, db, etc.) for Docker
-├── Dockerfile            # Blueprint for building our Django container
-├── Makefile              # Shortcuts for our development commands
-├── requirements.txt      # List of Python dependencies
-└── README.md             # You are here!
+vbb_backend/
+├── apps/                       # Django apps (application code)
+│   ├── users/                  # User & Facility models, auth, admin
+│   │   ├── api/                #   DRF serializers, views, urls (HTTP layer)
+│   │   └── ...
+│   ├── inventory/              # BloodUnit & BloodRequest
+│   │   ├── api/                #   HTTP layer: serializers, views, urls, filters
+│   │   ├── domain/             #   Business logic: lifecycle, transitions,
+│   │   │                       #     authorizers, dashboard service
+│   │   ├── config.py           #   Centralized domain constants (see docs/CONTEXT.md)
+│   │   └── ...
+│   └── notifications/          # Async notification events + delivery
+│       ├── api/                #   HTTP layer
+│       ├── delivery.py         #   Channel adapters (push / SMS)
+│       └── management/commands/dispatch_notifications.py  # Scheduled dispatcher
+├── config/                     # Project configuration
+│   ├── settings/               #   Split settings: base.py, dev.py, prod.py
+│   ├── urls.py                 #   Root URLs (+ /healthz/ probe)
+│   ├── wsgi.py / asgi.py
+├── docs/                       # Documentation (see docs/README.md)
+│   ├── architecture/decisions/ #   ADRs
+│   └── product/                #   SRS, SDS, delivery phases
+├── scripts/                    # start.sh (prod entrypoint), lint.sh, format.sh
+├── templates/                  # HTML template for the login test page
+├── compose.yaml                # Local dev services (web, db, lint, test)
+├── Dockerfile                  # Multi-stage build (base / dev / prod)
+├── render.yaml                 # Render deployment blueprint
+├── Makefile                    # Dev workflow shortcuts (run `make help`)
+├── pyproject.toml              # Dependencies + tool config (black/isort/flake8)
+└── README.md                   # You are here!
+```
+
+---
+
+## 🏛️ Architecture
+
+Each app separates its **HTTP layer** from its **business logic**:
+
+*   **`api/`** — DRF serializers, viewsets, routing, and filters. This is the thin
+    edge that translates HTTP to and from domain operations.
+*   **`domain/`** — pure business logic with no DRF/HTTP concerns: the blood-request
+    **lifecycle state machine**, allowed **transitions**, **authorizers** (who may
+    perform an action), and the **dashboard** aggregation service.
+
+This keeps domain rules unit-testable in isolation and prevents view code from
+accumulating business logic.
+
+**Key flows:**
+
+*   **Blood Request Lifecycle** — a request moves through an explicit state machine
+    (pending → accepted/rejected → shipped → received, or cancelled). Transitions are
+    only permitted from valid states and by authorized facilities. See
+    [ADR-0001](docs/architecture/decisions/ADR-0001-blood-request-transitions.md).
+*   **Notifications** — domain events are persisted, then a scheduled dispatcher
+    (`manage.py dispatch_notifications`) fans each event out to delivery channels
+    (push + SMS) asynchronously, without a broker. See
+    [ADR-0002](docs/architecture/decisions/ADR-0002-async-notification-dispatch-without-celery.md).
+*   **Domain configuration** — clinical/business constants (blood types, expiry days,
+    low-stock threshold, woreda range, page size) are centralized in
+    `apps/inventory/config.py` and overridable via env. See [docs/CONTEXT.md](docs/CONTEXT.md).
+
+---
+
+## ☁️ Deployment (Render)
+
+Production runs the **`prod` stage** of the multi-stage `Dockerfile` — no Docker
+Compose. Configuration is entirely env-driven via `config.settings.prod`.
+
+1.  Push the repo to GitHub and create a new **Blueprint** on Render pointing at
+    [`render.yaml`](render.yaml). It provisions the web service + a managed
+    PostgreSQL 16 database.
+2.  `SECRET_KEY` is generated by Render; `DATABASE_URL` is wired from the database;
+    `RENDER_EXTERNAL_HOSTNAME` is injected and automatically added to
+    `ALLOWED_HOSTS` / `CSRF_TRUSTED_ORIGINS`.
+3.  On each deploy, `scripts/start.sh` runs migrations and then serves the app with
+    Gunicorn on `$PORT`. Static files are collected at image-build time and served by
+    WhiteNoise.
+4.  Health checks hit `GET /healthz/`.
+
+To build the production image locally:
+
+```sh
+docker build --target prod -t vbb-backend .
+```
+
+The settings are validated with Django's deployment checklist:
+
+```sh
+DJANGO_SETTINGS_MODULE=config.settings.prod python manage.py check --deploy
 ```
 
 ---
