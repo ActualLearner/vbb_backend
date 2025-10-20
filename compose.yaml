@@ -43,9 +43,11 @@ services:
     build:
       context: .
       target: dev
-    command: pytest
+    command: python manage.py test apps
     env_file:
       - .env
+    volumes:
+      - .:/app
     # It's good practice to use a separate test DB name
     environment:
       - DATABASE_URL=postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}_test

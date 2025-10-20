@@ -6,15 +6,15 @@ ENV PYTHONUNBUFFERED=1
 
 WORKDIR /app
 
-COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+COPY . .
+RUN pip install --no-cache-dir .
 
 
 #--------------DEVELOPMENT STAGE--------------#
 FROM base AS dev
 
-# Copy the source code into the container.
-COPY . . 
+# Install development-only dependencies from pyproject extras.
+RUN pip install --no-cache-dir ".[dev]"
 
 # Expose the port that the application listens on & run the application.
 EXPOSE 8000
@@ -24,17 +24,22 @@ CMD ["python", "manage.py", "runserver", "0.0.0.0:8000"]
 #--------------PRODUCTION STAGE--------------#
 FROM base AS prod
 
-RUN addgroup --system app && adduser --system --group app
-USER app
-
-COPY ./apps /app/apps
-COPY ./config /app/config
-COPY ./manage.py /app/manage.py
-
 ENV DJANGO_SETTINGS_MODULE=config.settings.prod
 
-RUN python manage.py collectstatic --no-input 
+# Collect static assets at build time. Settings are evaluated on import, so we
+# supply throwaway values for the required env vars; collectstatic never touches
+# the database or uses the real secret.
+RUN SECRET_KEY=build-only-dummy \
+    DATABASE_URL=postgres://build:build@localhost:5432/build \
+    python manage.py collectstatic --no-input
 
-# Expose port and run with a production-ready server like Gunicorn
+# Run as an unprivileged user. Grant ownership so migrations/static work at runtime.
+RUN addgroup --system app && adduser --system --group app \
+    && chmod +x scripts/start.sh \
+    && chown -R app:app /app
+USER app
+
 EXPOSE 8000
-CMD ["gunicorn", "--bind", "0.0.0.0:8000", "config.wsgi:application"]
+
+# Migrate then serve. Render injects $PORT.
+CMD ["./scripts/start.sh"]
