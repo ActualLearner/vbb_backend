@@ -68,48 +68,12 @@ BLOOD_TYPE_DISTRIBUTION = {
 
 def seed_data(apps, schema_editor):
     """
-    Seeds the database with Facility and BloodUnit data using the new
-    location structure and a realistic distribution of blood types.
+    Previously this migration seeded realistic data which slowed test runs.
+    Moving heavy seeding into `manage.py seed_dev_data` makes migrations
+    lightweight and deterministic. Run the management command in development
+    to populate facilities and blood units.
     """
-    Facility = apps.get_model("users", "Facility")
-    BloodUnit = apps.get_model("inventory", "BloodUnit")
-
-    blood_types = list(BLOOD_TYPE_DISTRIBUTION.keys())
-    weights = list(BLOOD_TYPE_DISTRIBUTION.values())
-
-    print("\nSeeding realistic facility and blood unit data...")
-    for data in HOSPITAL_DATA:
-        # get_or_create checks based on the 'name' field to avoid duplicates
-        facility, created = Facility.objects.get_or_create(
-            name=data["name"], defaults=data
-        )
-        if not created:
-            print(f"  - Facility '{facility.name}' already exists. Skipping.")
-            continue
-
-        print(f"  - Created facility: {facility.name}")
-
-        units_to_create = []
-        total_units_for_facility = random.randint(150, 500)
-
-        for _ in range(total_units_for_facility):
-            chosen_blood_type = random.choices(blood_types, weights=weights, k=1)[0]
-            expiry_date = (
-                timezone.now() + timedelta(days=random.randint(1, 42))
-            ).date()
-
-            units_to_create.append(
-                BloodUnit(
-                    blood_type=chosen_blood_type,
-                    facility=facility,
-                    expires_at=expiry_date,
-                )
-            )
-
-        BloodUnit.objects.bulk_create(units_to_create)
-        print(
-            f"    - Seeded {len(units_to_create)} blood units with realistic distribution."
-        )
+    print("Seed step intentionally no-op. Run `manage.py seed_dev_data` to populate dev data.")
 
 
 def unseed_data(apps, schema_editor):
