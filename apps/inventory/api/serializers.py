@@ -2,7 +2,7 @@ from rest_framework import serializers
 from users.models import Facility
 from users.serializers import FacilitySerializer  # This import now works!
 
-from .models import BloodRequest, BloodUnit
+from ..models import BloodRequest, BloodUnit
 
 
 class BloodUnitSerializer(serializers.ModelSerializer):

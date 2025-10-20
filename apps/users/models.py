@@ -1,6 +1,7 @@
 from django.contrib.auth.models import AbstractUser
 from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import models
+from inventory.config import WOREDA_MAX, WOREDA_MIN
 
 
 class Facility(models.Model):
@@ -11,8 +12,8 @@ class Facility(models.Model):
     zone = models.CharField(max_length=100)
     woreda = models.PositiveIntegerField(
         validators=[
-            MinValueValidator(1),
-            MaxValueValidator(20),  # As requested, max of 20
+            MinValueValidator(WOREDA_MIN),
+            MaxValueValidator(WOREDA_MAX),
         ]
     )
     latitude = models.DecimalField(

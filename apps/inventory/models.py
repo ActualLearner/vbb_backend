@@ -2,6 +2,8 @@ from django.conf import settings
 from django.db import models
 from users.models import Facility
 
+from .config import BLOOD_TYPES
+
 
 class BloodUnit(models.Model):
     class BloodType(models.TextChoices):
@@ -45,7 +47,7 @@ class BloodRequest(models.Model):
         on_delete=models.PROTECT,
         related_name="blood_requests",
     )
-    blood_type = models.CharField(max_length=3, choices=BloodUnit.BloodType.choices)
+    blood_type = models.CharField(max_length=3, choices=BLOOD_TYPES)
     units_requested = models.PositiveIntegerField(default=1)
     status = models.CharField(
         max_length=20, choices=RequestStatus.choices, default=RequestStatus.PENDING
@@ -53,9 +55,8 @@ class BloodRequest(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
-
-def __str__(self):
-    return (
-        f"Request for {self.units_requested} unit(s) of {self.blood_type} "
-        f"from {self.requesting_facility.name}"
-    )
+    def __str__(self):
+        return (
+            f"Request for {self.units_requested} unit(s) of {self.blood_type} "
+            f"from {self.requesting_facility.name}"
+        )

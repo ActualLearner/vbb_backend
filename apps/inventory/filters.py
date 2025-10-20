@@ -1,6 +1,6 @@
 from django_filters import rest_framework as filters
-from users.models import Facility
-from .models import BloodUnit, BloodRequest
+
+from .models import BloodRequest, BloodUnit
 
 
 class BloodUnitFilter(filters.FilterSet):

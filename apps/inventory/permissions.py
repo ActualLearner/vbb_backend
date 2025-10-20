@@ -1,5 +1,9 @@
 from rest_framework import permissions
 
+from .domain.authorizers import BloodRequestAuthorizer
+
+authorizer = BloodRequestAuthorizer()
+
 
 class IsRequestingFacilityUser(permissions.BasePermission):
     """
@@ -11,7 +15,7 @@ class IsRequestingFacilityUser(permissions.BasePermission):
         if request.method in permissions.SAFE_METHODS:
             return True
         # Write permissions are only allowed to the user from the requesting facility.
-        return obj.requesting_facility == request.user.facility
+        return authorizer.can_receive_request(request.user, obj)
 
 
 class IsFulfillingFacilityUser(permissions.BasePermission):
@@ -24,4 +28,4 @@ class IsFulfillingFacilityUser(permissions.BasePermission):
         if request.method in permissions.SAFE_METHODS:
             return True
         # Write permissions are only allowed to the user from the fulfilling facility.
-        return obj.fulfilling_facility == request.user.facility
+        return authorizer.can_accept_request(request.user, obj)

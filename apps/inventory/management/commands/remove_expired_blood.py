@@ -1,11 +1,12 @@
 from django.core.management.base import BaseCommand
 from django.utils import timezone
+
 from apps.inventory.models import BloodUnit
 
 
 class Command(BaseCommand):
     """
-    A Django management command to find and remove expired blood units from the database.
+    Find and remove expired blood units from the database.
     Fulfills the data integrity requirement to not show expired inventory.
     """
 
@@ -26,7 +27,7 @@ class Command(BaseCommand):
 
         if count > 0:
             # If we found expired units, delete them.
-            # The delete() method returns a dictionary with the count of deleted objects.
+            # delete() returns a tuple whose first element is the total count.
             deleted_info = expired_units.delete()
             deleted_count = deleted_info[0]  # The count is the first element
 
