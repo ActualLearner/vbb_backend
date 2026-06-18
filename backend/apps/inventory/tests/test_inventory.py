@@ -28,7 +28,7 @@ class BloodRequestLifecycleServiceTests(TestCase):
         self.requested_by = User.objects.create_user(
             username="requester",
             password="password123",
-            role=User.Role.FACILITY_REPRESENTATIVE,
+            role=User.Role.PROFESSIONAL,
             facility=self.requesting_facility,
         )
 
@@ -94,13 +94,13 @@ class FacilityDashboardServiceTests(TestCase):
         self.other_user = User.objects.create_user(
             username="other-dashboard-user",
             password="password123",
-            role=User.Role.FACILITY_REPRESENTATIVE,
+            role=User.Role.PROFESSIONAL,
             facility=self.other_facility,
         )
         self.user = User.objects.create_user(
             username="dashboard-user",
             password="password123",
-            role=User.Role.FACILITY_REPRESENTATIVE,
+            role=User.Role.PROFESSIONAL,
             facility=self.facility,
         )
 
@@ -156,9 +156,9 @@ class FacilityDashboardServiceTests(TestCase):
         )
         self.assertEqual(summary.low_stock_alerts, ["A+"])
         self.assertEqual(summary.incoming_requests_count, 1)
-        self.assertEqual(summary.incoming_requests_ids, [incoming_request.id])
+        self.assertEqual(summary.incoming_requests_ids, [str(incoming_request.id)])
         self.assertEqual(summary.outgoing_requests_count, 1)
-        self.assertEqual(summary.outgoing_requests_ids, [outgoing_pending.id])
+        self.assertEqual(summary.outgoing_requests_ids, [str(outgoing_pending.id)])
 
 
 class BloodRequestAuthorizerTests(TestCase):
@@ -178,13 +178,13 @@ class BloodRequestAuthorizerTests(TestCase):
         self.requesting_user = User.objects.create_user(
             username="requesting-user",
             password="password123",
-            role=User.Role.FACILITY_REPRESENTATIVE,
+            role=User.Role.PROFESSIONAL,
             facility=self.requesting_facility,
         )
         self.fulfilling_user = User.objects.create_user(
             username="fulfilling-user",
             password="password123",
-            role=User.Role.FACILITY_REPRESENTATIVE,
+            role=User.Role.PROFESSIONAL,
             facility=self.fulfilling_facility,
         )
         self.admin_user = User.objects.create_user(
@@ -216,8 +216,16 @@ class BloodRequestAuthorizerTests(TestCase):
         self.assertFalse(
             authorizer.can_receive_request(self.fulfilling_user, self.blood_request)
         )
-        self.assertTrue(
+        # SDS 2.3.2: administrators perform no clinical actions.
+        self.assertFalse(
             authorizer.can_cancel_request(self.admin_user, self.blood_request)
+        )
+        self.assertFalse(
+            authorizer.can_accept_request(self.admin_user, self.blood_request)
+        )
+        # The requesting facility's professional may cancel their own request.
+        self.assertTrue(
+            authorizer.can_cancel_request(self.requesting_user, self.blood_request)
         )
 
 

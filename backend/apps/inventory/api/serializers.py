@@ -1,8 +1,11 @@
+from datetime import date, timedelta
+
 from rest_framework import serializers
 from users.models import Facility
 from users.serializers import FacilitySerializer  # This import now works!
 
-from ..models import BloodRequest, BloodUnit
+from ..config import EXPIRING_SOON_DAYS
+from ..models import BloodRequest, BloodRequestStatusEvent, BloodUnit
 
 
 class BloodUnitSerializer(serializers.ModelSerializer):
@@ -10,6 +13,8 @@ class BloodUnitSerializer(serializers.ModelSerializer):
     facility_id = serializers.PrimaryKeyRelatedField(
         queryset=Facility.objects.all(), source="facility", write_only=True
     )
+    is_expiring_soon = serializers.SerializerMethodField()
+    is_expired = serializers.SerializerMethodField()
 
     class Meta:
         model = BloodUnit
@@ -20,8 +25,26 @@ class BloodUnitSerializer(serializers.ModelSerializer):
             "facility_id",
             "donated_at",
             "expires_at",
+            "is_expiring_soon",
+            "is_expired",
         ]
         read_only_fields = ["donated_at"]
+
+    def get_is_expired(self, obj) -> bool:
+        return obj.expires_at < date.today()
+
+    def get_is_expiring_soon(self, obj) -> bool:
+        # Within the expiring-soon window and not already expired (PROC-BIM-006).
+        today = date.today()
+        return today <= obj.expires_at <= today + timedelta(days=EXPIRING_SOON_DAYS)
+
+
+class BloodRequestStatusEventSerializer(serializers.ModelSerializer):
+    actor = serializers.StringRelatedField(read_only=True)
+
+    class Meta:
+        model = BloodRequestStatusEvent
+        fields = ["id", "from_status", "to_status", "actor", "created_at"]
 
 
 class BloodRequestSerializer(serializers.ModelSerializer):
@@ -29,6 +52,7 @@ class BloodRequestSerializer(serializers.ModelSerializer):
     requesting_facility = FacilitySerializer(read_only=True)
     fulfilling_facility = FacilitySerializer(read_only=True)
     requested_by = serializers.StringRelatedField(read_only=True)
+    status_events = BloodRequestStatusEventSerializer(many=True, read_only=True)
 
     # This is for creating/writing a request (POST)
     fulfilling_facility_id = serializers.PrimaryKeyRelatedField(
@@ -45,8 +69,15 @@ class BloodRequestSerializer(serializers.ModelSerializer):
             "requested_by",
             "blood_type",
             "units_requested",
+            "notes",
+            "rejection_reason",
             "status",
             "created_at",
+            "updated_at",
+            "acceptance_timestamp",
+            "dispatch_timestamp",
+            "fulfillment_timestamp",
+            "status_events",
         ]
         # Status & requesting_facility are now controlled entirely by the backend logic
         read_only_fields = [
@@ -54,7 +85,11 @@ class BloodRequestSerializer(serializers.ModelSerializer):
             "updated_at",
             "requested_by",
             "status",
+            "rejection_reason",
             "requesting_facility",
+            "acceptance_timestamp",
+            "dispatch_timestamp",
+            "fulfillment_timestamp",
         ]
 
     def validate(self, data):
@@ -68,10 +103,7 @@ class BloodRequestSerializer(serializers.ModelSerializer):
         blood_type = data.get("blood_type")
         units_requested = data.get("units_requested")
 
-        # Ensure a user isn't requesting from their own facility
-        # The view's perform_create sets the requesting_facility
-        # from the logged-in user.
-        # We can access that user via the context that DRF passes to the serializer.
+        # Ensure a user isn't requesting from their own facility.
         requesting_user = self.context["request"].user
         if fulfilling_facility == requesting_user.facility:
             raise serializers.ValidationError(
@@ -96,13 +128,8 @@ class InventorySummarySerializer(serializers.Serializer):
     A read-only serializer for displaying aggregated blood unit counts.
     """
 
-    # Tell DRF that the data for this field comes from the 'facility__id' key
-    facility_id = serializers.IntegerField(source="facility__id")
-
-    # Tell DRF that the data for this field comes from the 'facility__name' key
+    facility_id = serializers.CharField(source="facility__id")
     facility_name = serializers.CharField(source="facility__name")
-
-    # These two already match, so no 'source' argument is needed
     blood_type = serializers.CharField()
     total_units = serializers.IntegerField()
 
@@ -125,7 +152,8 @@ class DashboardSerializer(serializers.Serializer):
 
     inventory_summary = DashboardInventorySummarySerializer(many=True)
     low_stock_alerts = serializers.ListField(child=serializers.CharField())
+    expiring_soon_alerts = serializers.ListField(child=serializers.CharField())
     incoming_requests_count = serializers.IntegerField()
-    incoming_requests_ids = serializers.ListField(child=serializers.IntegerField())
+    incoming_requests_ids = serializers.ListField(child=serializers.CharField())
     outgoing_requests_count = serializers.IntegerField()
-    outgoing_requests_ids = serializers.ListField(child=serializers.IntegerField())
+    outgoing_requests_ids = serializers.ListField(child=serializers.CharField())

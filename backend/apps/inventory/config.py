@@ -39,6 +39,10 @@ LOW_STOCK_THRESHOLD = int(os.getenv("INVENTORY_LOW_STOCK_THRESHOLD", "5"))
 # Default: 42 days (6 weeks). RFC compliance: Update if clinical guidance changes.
 STANDARD_EXPIRY_DAYS = int(os.getenv("INVENTORY_STANDARD_EXPIRY_DAYS", "42"))
 
+# Expiring-soon window: units expiring within this many days are flagged in
+# inventory displays (SRS VBB-PROC-BIM-006). Default: 7 days.
+EXPIRING_SOON_DAYS = int(os.getenv("INVENTORY_EXPIRING_SOON_DAYS", "7"))
+
 # ============================================================================
 # FACILITY & LOCATION CONSTRAINTS
 # ============================================================================
