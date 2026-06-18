@@ -4,8 +4,9 @@ services:
   - type: web
     name: vbb-backend
     runtime: docker
-    dockerfilePath: ./Dockerfile
-    dockerContext: .
+    # The backend lives in ./backend; the Render blueprint stays at repo root.
+    dockerfilePath: ./backend/Dockerfile
+    dockerContext: ./backend
     # Build only the production stage of the multi-stage Dockerfile.
     dockerCommand: ./scripts/start.sh
     plan: free

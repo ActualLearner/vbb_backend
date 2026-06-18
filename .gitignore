@@ -80,3 +80,6 @@ htmlcov/
 .Trashes
 ehthumbs.db
 Thumbs.db
+
+# Build/export artifacts
+*.zip
