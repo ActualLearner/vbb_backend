@@ -48,11 +48,15 @@ INSTALLED_APPS = [
     "allauth.socialaccount.providers.github",
     "allauth.socialaccount.providers.google",
     "rest_framework",
+    "rest_framework_simplejwt",
     "django_extensions",
     "django_filters",
+    "core",
     "users",
     "inventory",
     "notifications",
+    "donations",
+    "audit",
 ]
 
 MIDDLEWARE = [
@@ -99,6 +103,8 @@ AUTH_PASSWORD_VALIDATORS = [
     },
     {
         "NAME": "django.contrib.auth.password_validation.MinimumLengthValidator",
+        # SRS VBB-FUN-UM-002 / NFR-SEC-004: minimum 8 characters.
+        "OPTIONS": {"min_length": 8},
     },
     {
         "NAME": "django.contrib.auth.password_validation.CommonPasswordValidator",
@@ -106,13 +112,42 @@ AUTH_PASSWORD_VALIDATORS = [
     {
         "NAME": "django.contrib.auth.password_validation.NumericPasswordValidator",
     },
+    {
+        # SRS NFR-SEC-004: enforce upper/lower/digit/special character complexity.
+        "NAME": "core.validators.PasswordComplexityValidator",
+    },
 ]
 
 REST_FRAMEWORK = {
     "DEFAULT_FILTER_BACKENDS": ["django_filters.rest_framework.DjangoFilterBackend"],
-    # We can add default pagination and authentication here later
+    "DEFAULT_AUTHENTICATION_CLASSES": [
+        # The mobile client authenticates with JWTs (SDS 2.3.3). Session auth is
+        # retained so the Django admin and the browsable API keep working.
+        "rest_framework_simplejwt.authentication.JWTAuthentication",
+        "rest_framework.authentication.SessionAuthentication",
+    ],
+    "DEFAULT_PERMISSION_CLASSES": [
+        "rest_framework.permissions.IsAuthenticated",
+        "core.permissions.PasswordChangeNotRequired",
+    ],
     "DEFAULT_PAGINATION_CLASS": "rest_framework.pagination.PageNumberPagination",
     "PAGE_SIZE": 25,
+}
+
+# --- SIMPLE JWT (SDS 2.3.3) -------------------------------------------------
+# Access token lifetime maps to the SRS 30-minute inactivity logout
+# (VBB-FUN-UM-005); refresh lifetime maps to the 7-day "Remember Me"
+# (VBB-FUN-UM-007). Token claims carry the role and facility so the API gateway
+# can enforce the RBAC permission matrix without a DB lookup.
+from datetime import timedelta  # noqa: E402
+
+SIMPLE_JWT = {
+    "ACCESS_TOKEN_LIFETIME": timedelta(minutes=30),
+    "REFRESH_TOKEN_LIFETIME": timedelta(days=7),
+    "ROTATE_REFRESH_TOKENS": True,
+    "BLACKLIST_AFTER_ROTATION": False,
+    "USER_ID_FIELD": "id",
+    "USER_ID_CLAIM": "user_id",
 }
 
 AUTH_USER_MODEL = "users.User"
@@ -139,6 +174,8 @@ HEADLESS_FRONTEND_URLS = {
 # Required for allauth to work
 SITE_ID = 1
 AUTHENTICATION_BACKENDS = [
+    # Authenticate by email or Ethiopian phone number (SRS VBB-FUN-UM-004).
+    "users.auth_backends.EmailOrPhoneBackend",
     "django.contrib.auth.backends.ModelBackend",  # default
     "allauth.account.auth_backends.AuthenticationBackend",  # allauth
 ]

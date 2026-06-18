@@ -34,10 +34,8 @@ class CustomSignupAddonForm(forms.Form):
         """
         cleaned_data = super().clean()
         if not cleaned_data.get("role"):
-            # Set the default role if none was selected.
-            cleaned_data["role"] = (
-                User.Role.FACILITY_REPRESENTATIVE
-            )  # Or whichever you prefer as default
+            # Default new self-signups to the clinical role.
+            cleaned_data["role"] = User.Role.PROFESSIONAL
         return cleaned_data
 
     def signup(self, request, user):

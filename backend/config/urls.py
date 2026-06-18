@@ -2,28 +2,35 @@ from django.contrib import admin
 from django.http import JsonResponse
 from django.urls import include, path
 from django.views.generic import TemplateView
+from donations.api.views import DonationCenterViewSet
 from inventory.api.views import (
     BloodRequestViewSet,
     BloodUnitViewSet,
     DashboardAPIView,
+    DistrictInventoryView,
     InventorySummaryViewSet,
 )
 from notifications.api.views import NotificationRecordViewSet
 from rest_framework_nested import routers
-from users.api.views import FacilityViewSet, UserViewSet
+from rest_framework_simplejwt.views import TokenRefreshView
+from users.api.views import (
+    ChangePasswordView,
+    EmailOrPhoneTokenView,
+    FacilityViewSet,
+    MeView,
+    UserViewSet,
+)
 
-# --- 1. Define the Top-Level Router ---
-# This router handles /facilities/, /users/, and /blood-requests/
+# --- 1. Top-Level Router ---
 router = routers.DefaultRouter()
 router.register(r"facilities", FacilityViewSet, basename="facility")
 router.register(r"users", UserViewSet, basename="user")
 router.register(r"blood-requests", BloodRequestViewSet, basename="bloodrequest")
 router.register(r"notifications", NotificationRecordViewSet, basename="notification")
+router.register(r"donation-centers", DonationCenterViewSet, basename="donationcenter")
 
 
-# --- 2. Define the Nested Router ---
-# This router is dependent on the main 'router' and handles URLs
-# nested under /facilities/{facility_pk}/
+# --- 2. Nested Router (under /facilities/{facility_pk}/) ---
 facilities_router = routers.NestedDefaultRouter(
     router, r"facilities", lookup="facility"
 )
@@ -41,15 +48,28 @@ def healthz(request):
     return JsonResponse({"status": "ok"})
 
 
+# --- 3. Auth (JWT) ---
+auth_patterns = [
+    path("login/", EmailOrPhoneTokenView.as_view(), name="token_obtain_pair"),
+    path("refresh/", TokenRefreshView.as_view(), name="token_refresh"),
+    path("me/", MeView.as_view(), name="me"),
+    path("change-password/", ChangePasswordView.as_view(), name="change_password"),
+]
+
 urlpatterns = [
     path("", TemplateView.as_view(template_name="index.html"), name="login-page"),
     path("healthz/", healthz, name="healthz"),
-    # signup handled by API/auth endpoints; legacy HTML signup removed
     path("admin/", admin.site.urls),
-    # AllAuth URLS
+    # AllAuth URLS (account management, social, email password reset)
     path("accounts/", include("allauth.urls")),
     path("_allauth/", include("allauth.headless.urls")),
     # --- API URLS ---
+    path("api/v1/auth/", include(auth_patterns)),
     path("api/v1/", include(router.urls + facilities_router.urls)),
     path("api/v1/dashboard/", DashboardAPIView.as_view(), name="dashboard"),
+    path(
+        "api/v1/district-inventory/",
+        DistrictInventoryView.as_view(),
+        name="district-inventory",
+    ),
 ]
