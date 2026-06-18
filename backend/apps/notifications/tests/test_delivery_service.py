@@ -21,7 +21,7 @@ class DeliveryServiceTests(TestCase):
             username="duser",
             password="p",
             facility=self.facility,
-            role=User.Role.FACILITY_REPRESENTATIVE,
+            role=User.Role.PROFESSIONAL,
         )
 
     def test_custom_adapter_is_called_and_records_created(self):

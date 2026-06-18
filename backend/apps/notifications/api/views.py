@@ -1,3 +1,4 @@
+from core.permissions import PasswordChangeNotRequired
 from notifications.models import NotificationRecord
 from rest_framework import permissions, status, viewsets
 from rest_framework.decorators import action
@@ -9,7 +10,7 @@ from .serializers import NotificationRecordSerializer
 class NotificationRecordViewSet(viewsets.ModelViewSet):
     queryset = NotificationRecord.objects.all().order_by("-delivered_at")
     serializer_class = NotificationRecordSerializer
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [permissions.IsAuthenticated, PasswordChangeNotRequired]
 
     def get_queryset(self):
         # Users should only see their own notifications
