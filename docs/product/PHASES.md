@@ -1,5 +1,12 @@
 # Delivery Phases
 
+> **Note:** `docs/SRS.pdf` and `docs/SDS.pdf` are the authoritative specifications.
+> The backend is now feature-complete against those PDFs (auth/JWT, RBAC matrix,
+> user lifecycle, request notes/timestamps/history, donor-center mapping,
+> district inventory, expiring-soon alerts, FCM push, audit trail). The phase
+> breakdown below is retained for historical context. Design deviations are
+> recorded in `docs/architecture/decisions/` (ADR-0004 … ADR-0007).
+
 ## Objective
 
 Define what is in scope for each delivery phase so architecture and implementation sequencing stay aligned.

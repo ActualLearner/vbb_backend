@@ -1,38 +1,49 @@
 # VBB Backend Context
 
+> **Source of truth:** `docs/SRS.pdf` and `docs/SDS.pdf` are the authoritative
+> specifications. The markdown files under `docs/` summarize them for quick
+> reference. Where this document once diverged from the PDFs it has been
+> reconciled; design deviations are recorded in `docs/architecture/decisions/`.
+
 ## Product Scope
 
 - The current repository is the backend API for the Virtual Blood Bank product.
-- The mobile client is planned future work and is out of scope for the current release.
-- The product should be described as one system with two components: a mobile client and a backend API, but only the backend is being finalized now.
+- The mobile client (cross-platform, per SRS VBB-DC-001) is the remaining
+  deliverable and is out of scope for this repository.
+- The product is one system with two components: a mobile client and a backend
+  API; the backend is now feature-complete against the PDFs (see deviations).
 
 ## Canonical Terms
 
-- Facility: A hospital, clinic, or blood bank that can hold inventory and participate in requests.
-- User: An authenticated account tied to a facility or system administration role.
-- System Administrator: A user with platform-wide administrative access.
-- Facility Representative: A user who manages inventory and requests for a specific facility.
-- Facility Staff Member: Any authenticated user attached to a facility.
+- Facility: A hospital, clinic, or blood bank that holds inventory and participates in requests. Has region/zone/woreda (the woreda is the district), address, contact phone, and an active flag.
+- User: An authenticated account tied to a facility, with an Ethiopian phone number and a role.
+- Role — PROFESSIONAL: A healthcare professional (doctor, nurse, technician) who performs clinical workflows for their own facility.
+- Role — ADMIN: A facility administrator who manages users and facilities; performs no clinical actions (SDS §2.3 permission matrix).
 - Blood Unit: One unit of blood stored at a facility with a blood type and expiration date.
-- Blood Request: A request for one or more blood units from one facility to another.
-- Blood Request Lifecycle: The allowed states and transitions for a blood request.
-- Notification Event: A backend event that may produce push and SMS notifications.
-- Notification Record: A persisted notification entry used to track delivery state and read state.
-- Unread Notification: A notification that remains visible to the user until they explicitly mark it as read.
-- Notification Dispatcher: A scheduled backend process that reads pending Notification Events and delivers them asynchronously.
-- Delivery Channel Adapter: A channel-specific implementation that sends a notification to one channel (push or SMS).
-- Dashboard Summary: The facility-level overview of inventory, incoming requests, outgoing requests, and low-stock alerts.
-- Low Stock Alert: A warning that a blood type's inventory has fallen to or below the configured threshold.
+- Blood Request: A request for one or more blood units from one facility to another. Carries optional notes, a rejection reason, and per-transition timestamps.
+- Blood Request Lifecycle: The allowed states and transitions; a status-history record is appended on each transition.
+- Notification Event / Record: A backend event and its per-user delivery record (read/unread state).
+- Notification Dispatcher: A scheduled backend process that delivers pending events asynchronously.
+- Delivery Channel Adapter: A channel implementation; the active push channel is FCM (SMS dropped — see ADR-0007).
+- Donation Center: An informational location where donors can give blood (directory + nearest-by-distance).
+- Audit Log: An immutable record of security-relevant actions (SRS NFR-SEC-006).
+- Dashboard Summary: The facility overview of inventory, incoming/outgoing requests, low-stock and expiring-soon alerts.
+
+## Authentication & Authorization
+
+- The API authenticates with JWT (SDS §2.3.3); tokens carry role and facility claims. Login is by email or phone (ADR-0005).
+- Access tokens last 30 minutes (inactivity logout); refresh tokens last 7 days ("Remember Me").
+- Newly provisioned users receive a temporary password and must change it on first use before other endpoints unlock.
+- Authorization follows the SDS §2.3.2 permission matrix (ADR-0006).
 
 ## Notification Rules
 
-- Notifications are delivered asynchronously.
-- One backend notification event fans out to two delivery channels: push and SMS.
-- Blood Request Lifecycle actions are performed only when the current state allows them.
+- Notifications are delivered asynchronously via the scheduled dispatcher.
+- The active delivery channel is push (FCM); SMS was dropped per the SDS contingency (ADR-0007).
+- Blood Request Lifecycle actions run only when the current state allows them.
 - Notification read state is tracked at the user level.
 - Delivery attempts are logged to stdout and are not stored as delivery-attempt records.
-- Notifications remain visible while unread.
-- Notifications disappear from the user-visible list only after the user explicitly marks them as read.
+- Notifications remain visible while unread and disappear only after the user marks them read.
 
 ## Domain Configuration
 

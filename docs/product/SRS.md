@@ -1,5 +1,9 @@
 # Software Requirements Specification
 
+> **This markdown is a condensed summary.** The authoritative requirements are in
+> `docs/SRS.pdf` (and `docs/SDS.pdf` for design). The backend implements the PDF
+> scope; design deviations are recorded in `docs/architecture/decisions/`.
+
 ## 1. Introduction
 
 ### 1.1 Purpose

@@ -1,5 +1,10 @@
 # Software Design Specification
 
+> **This markdown is a condensed summary.** The authoritative design is in
+> `docs/SDS.pdf`. Deviations from it (UUID PKs, JWT auth, two-role RBAC matrix,
+> FCM-only delivery, per-unit inventory) are recorded in
+> `docs/architecture/decisions/` (ADR-0004 … ADR-0007).
+
 ## 1. Overview
 
 The backend is a Django and Django REST Framework application that manages Facilities, Users, Blood Inventory, Blood Requests, Dashboard Summaries, and asynchronous Notification Events.
