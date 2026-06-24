@@ -17,8 +17,9 @@
 
 - Facility: A hospital, clinic, or blood bank that holds inventory and participates in requests. Has region/zone/woreda (the woreda is the district), address, contact phone, and an active flag.
 - User: An authenticated account tied to a facility, with an Ethiopian phone number and a role.
-- Role — PROFESSIONAL: A healthcare professional (doctor, nurse, technician) who performs clinical workflows for their own facility.
-- Role — ADMIN: A facility administrator who manages users and facilities; performs no clinical actions (SDS §2.3 permission matrix).
+- Role — ADMIN: A facility administrator who manages users and facilities and reads everything; performs no clinical actions.
+- Role — SUPPLY: Inventory/supply staff who manage their facility's stock and fulfill incoming requests (accept/reject/ship).
+- Role — CLINICIAN: Clinical staff who raise requests and confirm receipt (create/cancel/receive). See ADR-0008 for the three-role least-privilege matrix.
 - Blood Unit: One unit of blood stored at a facility with a blood type and expiration date.
 - Blood Request: A request for one or more blood units from one facility to another. Carries optional notes, a rejection reason, and per-transition timestamps.
 - Blood Request Lifecycle: The allowed states and transitions; a status-history record is appended on each transition.

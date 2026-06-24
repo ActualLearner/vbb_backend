@@ -2,7 +2,13 @@
 
 Date: 2026-06-17
 
-Status: Accepted
+Status: Superseded by [ADR-0008](ADR-0008-three-role-least-privilege.md)
+
+> The role model here (`ADMIN` + `PROFESSIONAL`) was later split into three
+> least-privilege roles (`ADMIN`, `SUPPLY`, `CLINICIAN`) in ADR-0008. The
+> facility-scoping and admins-do-no-clinical-actions principles still hold; only
+> the single `PROFESSIONAL` role was divided. The keep-`region/zone/woreda`
+> decision below also still stands.
 
 ## Context
 

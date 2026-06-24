@@ -140,9 +140,10 @@ For development and testing, simple login and signup pages are provided. These a
 
 ## 🗺️ API Endpoints
 
-> Roles follow the SDS permission matrix: **PROFESSIONAL** performs clinical
-> actions for their own facility; **ADMIN** manages users/facilities and performs
-> no clinical actions.
+> Roles follow the three-role least-privilege matrix (ADR-0008): **SUPPLY** manages
+> own-facility inventory and fulfills incoming requests (accept/reject/ship);
+> **CLINICIAN** raises requests and confirms receipt (create/cancel/receive);
+> **ADMIN** manages users/facilities and performs no clinical actions.
 
 ### Authentication
 
@@ -163,7 +164,7 @@ For development and testing, simple login and signup pages are provided. These a
 | `GET`/`POST` | `/api/v1/users/` | List / create users (create returns a temp password). | Admin Only |
 | `POST` | `/api/v1/users/{id}/deactivate/` · `/reactivate/` · `/assign-role/` | Manage an account. | Admin Only |
 | `GET` | `/api/v1/blood-requests/`| List requests. Filter `?status=`, `?blood_type=`, `?type=incoming`. | Authenticated |
-| `POST`| `/api/v1/blood-requests/`| Create a request (accepts `notes`). | Professional |
+| `POST`| `/api/v1/blood-requests/`| Create a request (accepts `notes`). | Clinician |
 | `GET` | `/api/v1/donation-centers/` · `/nearby/?lat=&lng=` | Donor center directory; nearest-first. | Authenticated |
 | `GET` | `/api/v1/notifications/` · `POST .../{id}/mark_read/` | List own notifications; mark read. | Authenticated |
 
@@ -172,7 +173,7 @@ For development and testing, simple login and signup pages are provided. These a
 | Method | Endpoint | Description | Permissions |
 | :--- | :--- | :--- | :--- |
 | `GET` | `/api/v1/facilities/{id}/inventory/` | Blood units for a facility (flags `is_expiring_soon`). Filter `?blood_type=`. | Authenticated |
-| `POST`| `/api/v1/facilities/{id}/inventory/` | Add a blood unit to your own facility. | Professional |
+| `POST`| `/api/v1/facilities/{id}/inventory/` | Add a blood unit to your own facility. | Supply |
 | `GET` | `/api/v1/facilities/{id}/inventory-summary/`| Aggregated unit counts by type. | Authenticated |
 | `GET` | `/api/v1/facilities/{id}/staff/` | Users registered to a facility. | Admin Only |
 
@@ -182,11 +183,11 @@ These are `POST` requests that transition a blood request's state.
 
 | Action | Endpoint | Description | Performed By |
 | :--- | :--- | :--- | :--- |
-| **Accept** | `/api/v1/blood-requests/{id}/accept/` | Approves a request and deducts units from inventory. | Professional, **fulfilling** facility |
-| **Reject** | `/api/v1/blood-requests/{id}/reject/` | Denies a pending request (accepts `reason`). | Professional, **fulfilling** facility |
-| **Ship** | `/api/v1/blood-requests/{id}/ship/` | Marks the accepted units in-transit. | Professional, **fulfilling** facility |
-| **Receive**| `/api/v1/blood-requests/{id}/receive/`| Confirms receipt and adds units to the requesting facility. | Professional, **requesting** facility |
-| **Cancel** | `/api/v1/blood-requests/{id}/cancel/` | Cancels a PENDING or ACCEPTED request (restores reserved stock). | Professional, **requesting** facility |
+| **Accept** | `/api/v1/blood-requests/{id}/accept/` | Approves a request and deducts units from inventory. | Supply, **fulfilling** facility |
+| **Reject** | `/api/v1/blood-requests/{id}/reject/` | Denies a pending request (accepts `reason`). | Supply, **fulfilling** facility |
+| **Ship** | `/api/v1/blood-requests/{id}/ship/` | Marks the accepted units in-transit. | Supply, **fulfilling** facility |
+| **Receive**| `/api/v1/blood-requests/{id}/receive/`| Confirms receipt and adds units to the requesting facility. | Clinician, **requesting** facility |
+| **Cancel** | `/api/v1/blood-requests/{id}/cancel/` | Cancels a PENDING or ACCEPTED request (restores reserved stock). | Clinician, **requesting** facility |
 
 ---
 

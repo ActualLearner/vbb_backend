@@ -40,14 +40,15 @@ Query params: `?page=<n>`. **Not paginated:** `…/inventory-summary/`, `/dashbo
 | `404` | Not found (or not visible to the caller) | `{"detail": "Not found."}` |
 
 ### Enumerations
-- **Role:** `PROFESSIONAL`, `ADMIN`
+- **Role:** `ADMIN`, `SUPPLY`, `CLINICIAN`
 - **Blood type:** `A+ A- B+ B- AB+ AB- O+ O-`
 - **Request status:** `PENDING ACCEPTED REJECTED IN_TRANSIT FULFILLED CANCELLED`
 - **Notification type:** `NEW_REQUEST REQUEST_ACCEPTED REQUEST_REJECTED REQUEST_IN_TRANSIT REQUEST_FULFILLED REQUEST_CANCELLED LOW_STOCK EXPIRING_SOON`
 
-### Roles & authorization (SDS §2.3.2)
-- **PROFESSIONAL** — clinical workflows for **their own facility**: add inventory, create requests, accept/reject/ship (when fulfilling), receive/cancel (when requesting).
-- **ADMIN** — user & facility management only; **no** clinical actions; read-only elsewhere.
+### Roles & authorization (ADR-0008)
+- **ADMIN** — user & facility management; reads everything; **no** clinical actions.
+- **SUPPLY** — manages **own-facility** inventory and fulfills incoming requests: add/update inventory, accept / reject / ship.
+- **CLINICIAN** — raises and tracks **own-facility** requests: create, cancel, and receive (confirm arrival).
 
 ---
 
@@ -92,7 +93,7 @@ Returns the caller's profile. → `200`:
 {
   "id": "uuid", "username": "pro1", "email": "pro1@example.com",
   "full_name": "Abebe Bekele", "phone_number": "+251911223344",
-  "role": "PROFESSIONAL", "facility": "uuid", "must_change_password": false
+  "role": "CLINICIAN", "facility": "uuid", "must_change_password": false
 }
 ```
 
@@ -138,7 +139,7 @@ ADMIN only. Object (read):
 {
   "id": "uuid", "username": "pro1", "email": "pro1@example.com",
   "full_name": "Abebe Bekele", "phone_number": "+251911223344",
-  "role": "PROFESSIONAL", "facility": "uuid",
+  "role": "CLINICIAN", "facility": "uuid",
   "is_active": true, "must_change_password": false,
   "last_login": "2026-06-18T07:30:00Z", "date_joined": "2026-06-01T09:00:00Z"
 }
@@ -151,7 +152,7 @@ ADMIN only. Object (read):
 | `GET`/`PUT`/`PATCH`/`DELETE` | `/users/{id}/` | ADMIN | |
 | `POST` | `/users/{id}/deactivate/` | ADMIN | Sets `is_active=false`. `400` if targeting self. |
 | `POST` | `/users/{id}/reactivate/` | ADMIN | Sets `is_active=true`. |
-| `POST` | `/users/{id}/assign-role/` | ADMIN | Body `{"role": "ADMIN"\|"PROFESSIONAL"}`. |
+| `POST` | `/users/{id}/assign-role/` | ADMIN | Body `{"role": "ADMIN"\|"SUPPLY"\|"CLINICIAN"}`. |
 | `GET` | `/facilities/{id}/staff/` | ADMIN | Users at a facility (nested). |
 
 **`POST /users/`** request:
@@ -159,7 +160,7 @@ ADMIN only. Object (read):
 {
   "username": "newbie", "email": "n@example.com",
   "full_name": "New Bie", "phone_number": "+251933333333",
-  "role": "PROFESSIONAL", "facility": "uuid",
+  "role": "CLINICIAN", "facility": "uuid",
   "password": "optional — generated if omitted"
 }
 ```
@@ -185,7 +186,7 @@ Blood units are tracked individually (one row per unit). Object:
 | Method | Path | Permission | Query / Body |
 | :-- | :-- | :-- | :-- |
 | `GET` | `/facilities/{fid}/inventory/` | Authenticated | `?blood_type=A+` |
-| `POST` | `/facilities/{fid}/inventory/` | **PROFESSIONAL**, own facility | body below |
+| `POST` | `/facilities/{fid}/inventory/` | **SUPPLY**, own facility | body below |
 | `GET` | `/facilities/{fid}/inventory-summary/` | Authenticated | aggregate counts (not paginated) |
 
 **`POST` body:** `{ "blood_type": "O+", "facility_id": "<fid>", "expires_at": "2026-08-01" }`.
@@ -224,7 +225,7 @@ Object:
 | Method | Path | Permission | Query / Body |
 | :-- | :-- | :-- | :-- |
 | `GET` | `/blood-requests/` | Authenticated | `?status=PENDING` (repeatable), `?blood_type=A+`, `?type=incoming\|outgoing` |
-| `POST` | `/blood-requests/` | **PROFESSIONAL** | create (below) |
+| `POST` | `/blood-requests/` | **CLINICIAN** | create (below) |
 | `GET` | `/blood-requests/{id}/` | Authenticated | single request |
 
 **`POST` body** (writable fields only):
@@ -241,11 +242,11 @@ caller without the right role/facility returns `403`.
 
 | Action | Allowed from | Performed by | Effect |
 | :-- | :-- | :-- | :-- |
-| `accept/` | `PENDING` | PROFESSIONAL, fulfilling | Deducts oldest units; sets `acceptance_timestamp`; notifies requester (+ low-stock alert). Auto-rejects with `400` if stock is now insufficient. |
-| `reject/` | `PENDING` | PROFESSIONAL, fulfilling | Body `{"reason": "optional"}` → `rejection_reason`. Notifies requester. |
-| `ship/` | `ACCEPTED` | PROFESSIONAL, fulfilling | Sets `dispatch_timestamp`; status → `IN_TRANSIT`. |
-| `receive/` | `IN_TRANSIT` | PROFESSIONAL, requesting | Creates units at requesting facility; sets `fulfillment_timestamp`; status → `FULFILLED`. |
-| `cancel/` | `PENDING` or `ACCEPTED` | PROFESSIONAL, requesting | Status → `CANCELLED`; if it was `ACCEPTED`, reserved stock is restored to the fulfilling facility. |
+| `accept/` | `PENDING` | SUPPLY, fulfilling | Deducts oldest units; sets `acceptance_timestamp`; notifies requester (+ low-stock alert). Auto-rejects with `400` if stock is now insufficient. |
+| `reject/` | `PENDING` | SUPPLY, fulfilling | Body `{"reason": "optional"}` → `rejection_reason`. Notifies requester. |
+| `ship/` | `ACCEPTED` | SUPPLY, fulfilling | Sets `dispatch_timestamp`; status → `IN_TRANSIT`. |
+| `receive/` | `IN_TRANSIT` | CLINICIAN, requesting | Creates units at requesting facility; sets `fulfillment_timestamp`; status → `FULFILLED`. |
+| `cancel/` | `PENDING` or `ACCEPTED` | CLINICIAN, requesting | Status → `CANCELLED`; if it was `ACCEPTED`, reserved stock is restored to the fulfilling facility. |
 
 ---
 
