@@ -28,7 +28,7 @@ class BloodRequestLifecycleServiceTests(TestCase):
         self.requested_by = User.objects.create_user(
             username="requester",
             password="password123",
-            role=User.Role.PROFESSIONAL,
+            role=User.Role.CLINICIAN,
             facility=self.requesting_facility,
         )
 
@@ -94,13 +94,13 @@ class FacilityDashboardServiceTests(TestCase):
         self.other_user = User.objects.create_user(
             username="other-dashboard-user",
             password="password123",
-            role=User.Role.PROFESSIONAL,
+            role=User.Role.CLINICIAN,
             facility=self.other_facility,
         )
         self.user = User.objects.create_user(
             username="dashboard-user",
             password="password123",
-            role=User.Role.PROFESSIONAL,
+            role=User.Role.CLINICIAN,
             facility=self.facility,
         )
 
@@ -175,16 +175,17 @@ class BloodRequestAuthorizerTests(TestCase):
             zone="Zone 2",
             woreda=6,
         )
+        # Requesting side is a clinician; fulfilling side is supply staff.
         self.requesting_user = User.objects.create_user(
             username="requesting-user",
             password="password123",
-            role=User.Role.PROFESSIONAL,
+            role=User.Role.CLINICIAN,
             facility=self.requesting_facility,
         )
         self.fulfilling_user = User.objects.create_user(
             username="fulfilling-user",
             password="password123",
-            role=User.Role.PROFESSIONAL,
+            role=User.Role.SUPPLY,
             facility=self.fulfilling_facility,
         )
         self.admin_user = User.objects.create_user(
@@ -201,31 +202,35 @@ class BloodRequestAuthorizerTests(TestCase):
             units_requested=1,
         )
 
-    def test_distinguishes_requesting_and_fulfilling_facility_actions(self):
+    def test_distinguishes_supply_clinician_and_admin_actions(self):
         authorizer = BloodRequestAuthorizer()
 
+        # SUPPLY at the fulfilling facility may accept; a clinician may not.
         self.assertTrue(
             authorizer.can_accept_request(self.fulfilling_user, self.blood_request)
         )
         self.assertFalse(
             authorizer.can_accept_request(self.requesting_user, self.blood_request)
         )
+        # CLINICIAN at the requesting facility may receive/cancel; supply may not.
         self.assertTrue(
             authorizer.can_receive_request(self.requesting_user, self.blood_request)
+        )
+        self.assertTrue(
+            authorizer.can_cancel_request(self.requesting_user, self.blood_request)
         )
         self.assertFalse(
             authorizer.can_receive_request(self.fulfilling_user, self.blood_request)
         )
-        # SDS 2.3.2: administrators perform no clinical actions.
         self.assertFalse(
-            authorizer.can_cancel_request(self.admin_user, self.blood_request)
+            authorizer.can_cancel_request(self.fulfilling_user, self.blood_request)
         )
+        # ADR-0008: administrators perform no clinical actions.
         self.assertFalse(
             authorizer.can_accept_request(self.admin_user, self.blood_request)
         )
-        # The requesting facility's professional may cancel their own request.
-        self.assertTrue(
-            authorizer.can_cancel_request(self.requesting_user, self.blood_request)
+        self.assertFalse(
+            authorizer.can_cancel_request(self.admin_user, self.blood_request)
         )
 
 

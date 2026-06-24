@@ -20,7 +20,7 @@ def create_user(username="user", facility=None, role=None, **extra):
         username=username,
         password="password",
         facility=facility,
-        role=role or User.Role.PROFESSIONAL,
+        role=role or User.Role.CLINICIAN,
         **extra,
     )
 
@@ -28,6 +28,18 @@ def create_user(username="user", facility=None, role=None, **extra):
 def create_admin(username="admin", facility=None, **extra):
     return create_user(
         username=username, facility=facility, role=User.Role.ADMIN, **extra
+    )
+
+
+def create_supply(username="supply", facility=None, **extra):
+    return create_user(
+        username=username, facility=facility, role=User.Role.SUPPLY, **extra
+    )
+
+
+def create_clinician(username="clinician", facility=None, **extra):
+    return create_user(
+        username=username, facility=facility, role=User.Role.CLINICIAN, **extra
     )
 
 

@@ -6,7 +6,12 @@ from notifications.models import NotificationEvent
 from rest_framework.test import APIClient
 from users.models import User
 
-from tests.factories import create_facility, create_user
+from tests.factories import (
+    create_clinician,
+    create_facility,
+    create_supply,
+    create_user,
+)
 
 
 def _stock(facility, blood_type, count, days=10):
@@ -22,8 +27,11 @@ class BloodRequestAPITests(TestCase):
     def setUp(self):
         self.req_facility = create_facility(name="Requesting", woreda=1)
         self.ful_facility = create_facility(name="Fulfilling", woreda=2)
-        self.requester = create_user(username="requester", facility=self.req_facility)
-        self.fulfiller = create_user(username="fulfiller", facility=self.ful_facility)
+        # Requesting side is a clinician; fulfilling side is supply staff.
+        self.requester = create_clinician(
+            username="requester", facility=self.req_facility
+        )
+        self.fulfiller = create_supply(username="fulfiller", facility=self.ful_facility)
 
         self.client = APIClient()
         self.client.force_authenticate(self.requester)
@@ -167,7 +175,8 @@ class InventoryAPITests(TestCase):
     def setUp(self):
         self.facility = create_facility(name="Owner", woreda=1)
         self.other = create_facility(name="Other", woreda=2)
-        self.user = create_user(username="owner", facility=self.facility)
+        # Inventory is managed by supply staff.
+        self.user = create_supply(username="owner", facility=self.facility)
         self.client = APIClient()
         self.client.force_authenticate(self.user)
 

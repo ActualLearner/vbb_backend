@@ -5,7 +5,12 @@ from django.test import TestCase
 from inventory.models import BloodRequest, BloodUnit
 from rest_framework.test import APIClient
 
-from tests.factories import create_admin, create_facility, create_user
+from tests.factories import (
+    create_admin,
+    create_clinician,
+    create_facility,
+    create_supply,
+)
 
 
 def _stock(facility, blood_type, count, days=10):
@@ -21,14 +26,16 @@ class RBACMatrixTests(TestCase):
     def setUp(self):
         self.req = create_facility(name="Req", woreda=1)
         self.ful = create_facility(name="Ful", woreda=2)
-        self.pro = create_user(username="pro", facility=self.req)
-        self.ful_pro = create_user(username="fulpro", facility=self.ful)
+        self.clinician = create_clinician(username="clin", facility=self.req)
+        self.supply = create_supply(username="sup", facility=self.ful)
+        self.req_supply = create_supply(username="reqsup", facility=self.req)
+        self.ful_clinician = create_clinician(username="fulclin", facility=self.ful)
         self.admin = create_admin(username="admin", facility=self.req)
         self.client = APIClient()
 
     def _make_request(self):
         _stock(self.ful, "A+", 3)
-        self.client.force_authenticate(self.pro)
+        self.client.force_authenticate(self.clinician)
         return self.client.post(
             "/api/v1/blood-requests/",
             {
@@ -74,13 +81,46 @@ class RBACMatrixTests(TestCase):
         )
         self.assertEqual(resp.status_code, 403)
 
+    def test_supply_cannot_create_request(self):
+        _stock(self.ful, "A+", 3)
+        self.client.force_authenticate(self.req_supply)
+        resp = self.client.post(
+            "/api/v1/blood-requests/",
+            {
+                "fulfilling_facility_id": str(self.ful.id),
+                "blood_type": "A+",
+                "units_requested": 1,
+            },
+            format="json",
+        )
+        self.assertEqual(resp.status_code, 403)
+
+    def test_clinician_cannot_add_inventory(self):
+        self.client.force_authenticate(self.clinician)
+        resp = self.client.post(
+            f"/api/v1/facilities/{self.req.id}/inventory/",
+            {
+                "blood_type": "O+",
+                "facility_id": str(self.req.id),
+                "expires_at": str(date.today() + timedelta(days=20)),
+            },
+            format="json",
+        )
+        self.assertEqual(resp.status_code, 403)
+
+    def test_clinician_cannot_accept_request(self):
+        rid = self._make_request()
+        self.client.force_authenticate(self.ful_clinician)
+        resp = self.client.post(f"/api/v1/blood-requests/{rid}/accept/")
+        self.assertEqual(resp.status_code, 403)
+
 
 class LifecycleExtrasTests(TestCase):
     def setUp(self):
         self.req = create_facility(name="Req", woreda=1)
         self.ful = create_facility(name="Ful", woreda=2)
-        self.pro = create_user(username="pro", facility=self.req)
-        self.ful_pro = create_user(username="fulpro", facility=self.ful)
+        self.pro = create_clinician(username="clin", facility=self.req)
+        self.ful_pro = create_supply(username="sup", facility=self.ful)
         self.client = APIClient()
         self.client.force_authenticate(self.pro)
 
@@ -122,7 +162,7 @@ class LifecycleExtrasTests(TestCase):
         self.assertEqual(
             BloodUnit.objects.filter(facility=self.ful, blood_type="A+").count(), 2
         )
-        # Requesting professional cancels the accepted request.
+        # Requesting clinician cancels the accepted request.
         self.client.force_authenticate(self.pro)
         resp = self.client.post(f"/api/v1/blood-requests/{rid}/cancel/")
         self.assertEqual(resp.status_code, 200, resp.content)
@@ -170,7 +210,7 @@ class DistrictAndExpiryTests(TestCase):
         self.facility = create_facility(name="A Hospital", woreda=7)
         self.sibling = create_facility(name="B Hospital", woreda=7)
         self.outsider = create_facility(name="Far Hospital", woreda=9)
-        self.user = create_user(username="u", facility=self.facility)
+        self.user = create_clinician(username="u", facility=self.facility)
         self.client = APIClient()
         self.client.force_authenticate(self.user)
 

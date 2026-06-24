@@ -46,7 +46,7 @@ class Facility(models.Model):
 
 
 class User(AbstractUser):
-    """Custom user for verified healthcare professionals (SDS 4.3).
+    """Custom user for verified healthcare staff (SDS 4.3).
 
     Extends AbstractUser, inheriting password hashing, ``is_active`` (an
     inactive user cannot log in — SRS VBB-UC-007 4b), ``last_login`` and
@@ -55,16 +55,17 @@ class User(AbstractUser):
     """
 
     class Role(models.TextChoices):
-        # Two roles per the SDS permission matrix (SDS 2.3). PROFESSIONAL covers
-        # clinical staff (doctors, nurses, technicians); ADMIN manages users and
-        # facilities and performs no clinical actions.
-        PROFESSIONAL = "PROFESSIONAL", "Healthcare Professional"
+        # Three least-privilege roles (supersedes the SDS 2-role matrix; see
+        # ADR-0008). ADMIN manages users/facilities and reads everything but
+        # performs no clinical actions. SUPPLY manages own-facility inventory
+        # and fulfills incoming requests (accept/reject/ship). CLINICIAN raises
+        # requests and confirms receipt (create/cancel/receive).
         ADMIN = "ADMIN", "Facility Administrator"
+        SUPPLY = "SUPPLY", "Supply / Inventory Staff"
+        CLINICIAN = "CLINICIAN", "Clinician"
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    role = models.CharField(
-        max_length=20, choices=Role.choices, default=Role.PROFESSIONAL
-    )
+    role = models.CharField(max_length=20, choices=Role.choices, default=Role.CLINICIAN)
     full_name = models.CharField(max_length=100, blank=True)
     phone_number = models.CharField(
         max_length=20,
@@ -95,8 +96,12 @@ class User(AbstractUser):
         return self.role == self.Role.ADMIN
 
     @property
-    def is_professional(self) -> bool:
-        return self.role == self.Role.PROFESSIONAL
+    def is_supply(self) -> bool:
+        return self.role == self.Role.SUPPLY
+
+    @property
+    def is_clinician(self) -> bool:
+        return self.role == self.Role.CLINICIAN
 
     def __str__(self):
         return self.username

@@ -10,7 +10,7 @@ from rest_framework.exceptions import PermissionDenied, ValidationError
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
-from users.permissions import IsProfessional
+from users.permissions import IsClinician, IsSupply
 
 from ..config import LOW_STOCK_THRESHOLD
 from ..domain.dashboard import FacilityDashboardService
@@ -31,8 +31,8 @@ class BloodUnitViewSet(viewsets.ModelViewSet):
     API endpoint for managing blood units FOR A SPECIFIC FACILITY.
     Accessed via /api/v1/facilities/{facility_pk}/inventory/
 
-    Read access for any authenticated user (SRS 3.3.3). Write access only for a
-    Healthcare Professional updating their own facility (SDS permission matrix).
+    Read access for any authenticated user (SRS 3.3.3). Write access only for
+    SUPPLY staff updating their own facility (ADR-0008 permission matrix).
     """
 
     serializer_class = BloodUnitSerializer
@@ -41,7 +41,7 @@ class BloodUnitViewSet(viewsets.ModelViewSet):
 
     def get_permissions(self):
         if self.action in ("create", "update", "partial_update", "destroy"):
-            return [IsProfessional(), PasswordChangeNotRequired()]
+            return [IsSupply(), PasswordChangeNotRequired()]
         return [IsAuthenticated(), PasswordChangeNotRequired()]
 
     def get_queryset(self):
@@ -58,7 +58,7 @@ class BloodUnitViewSet(viewsets.ModelViewSet):
             facility = Facility.objects.get(pk=facility_pk)
         except Facility.DoesNotExist:
             raise ValidationError("Facility not found.")
-        # A professional may only add to their own facility's inventory.
+        # Supply staff may only add to their own facility's inventory.
         if self.request.user.facility_id != facility.id:
             raise PermissionDenied("You can only add blood units to your own facility.")
         unit = serializer.save(facility=facility)
@@ -92,8 +92,8 @@ class BloodRequestViewSet(viewsets.ModelViewSet):
         elif self.action in ["receive", "cancel"]:
             permission_classes = [IsRequestingFacilityUser]
         elif self.action == "create":
-            # Only Healthcare Professionals create requests (SDS matrix).
-            permission_classes = [IsProfessional]
+            # Only clinicians raise requests (ADR-0008).
+            permission_classes = [IsClinician]
         else:
             permission_classes = [IsAuthenticated]
         permission_classes = permission_classes + [PasswordChangeNotRequired]

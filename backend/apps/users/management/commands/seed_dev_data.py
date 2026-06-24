@@ -111,7 +111,7 @@ class Command(BaseCommand):
                 continue
             self.stdout.write(f"  - Created facility: {facility.name}")
 
-            # One admin and one professional per facility.
+            # One admin, one supply, and one clinician per facility.
             User.objects.create_user(
                 username=f"admin{idx}",
                 password="ChangeMe123!",
@@ -121,11 +121,19 @@ class Command(BaseCommand):
                 facility=facility,
             )
             User.objects.create_user(
-                username=f"pro{idx}",
+                username=f"supply{idx}",
                 password="ChangeMe123!",
-                role=User.Role.PROFESSIONAL,
-                full_name=f"Professional {idx}",
+                role=User.Role.SUPPLY,
+                full_name=f"Supply {idx}",
                 phone_number=f"+25191200000{idx}",
+                facility=facility,
+            )
+            User.objects.create_user(
+                username=f"clinician{idx}",
+                password="ChangeMe123!",
+                role=User.Role.CLINICIAN,
+                full_name=f"Clinician {idx}",
+                phone_number=f"+25191300000{idx}",
                 facility=facility,
             )
 

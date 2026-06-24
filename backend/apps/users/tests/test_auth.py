@@ -37,7 +37,7 @@ class JWTAuthTests(TestCase):
 
         access = self._login("pro1@example.com").json()["access"]
         payload = jwt.decode(access, options={"verify_signature": False})
-        self.assertEqual(payload["role"], User.Role.PROFESSIONAL)
+        self.assertEqual(payload["role"], User.Role.CLINICIAN)
         self.assertEqual(payload["facility_id"], str(self.facility.id))
 
     def test_inactive_user_rejected(self):
@@ -140,7 +140,7 @@ class AdminUserManagementTests(TestCase):
                 "username": "newbie",
                 "full_name": "New Bie",
                 "phone_number": "+251933333333",
-                "role": User.Role.PROFESSIONAL,
+                "role": User.Role.CLINICIAN,
                 "facility": str(self.facility.id),
             },
             format="json",
@@ -170,7 +170,7 @@ class AdminUserManagementTests(TestCase):
         self.pro.refresh_from_db()
         self.assertEqual(self.pro.role, User.Role.ADMIN)
 
-    def test_professional_cannot_manage_users(self):
+    def test_non_admin_cannot_manage_users(self):
         self.client.force_authenticate(self.pro)
         resp = self.client.get("/api/v1/users/")
         self.assertEqual(resp.status_code, 403)

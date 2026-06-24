@@ -12,14 +12,25 @@ class IsAdminUser(BasePermission):
         )
 
 
-class IsProfessional(BasePermission):
-    """Allows access only to Healthcare Professionals (role PROFESSIONAL)."""
+class IsSupply(BasePermission):
+    """Allows access only to Supply / Inventory staff (role SUPPLY)."""
 
     def has_permission(self, request, view):
         return bool(
             request.user
             and request.user.is_authenticated
-            and request.user.role == "PROFESSIONAL"
+            and request.user.role == "SUPPLY"
+        )
+
+
+class IsClinician(BasePermission):
+    """Allows access only to Clinicians (role CLINICIAN)."""
+
+    def has_permission(self, request, view):
+        return bool(
+            request.user
+            and request.user.is_authenticated
+            and request.user.role == "CLINICIAN"
         )
 
 
