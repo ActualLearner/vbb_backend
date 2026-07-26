@@ -9,6 +9,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- OpenAPI 3 schema at `/api/schema/` with interactive Swagger UI at
+  `/api/docs/` (drf-spectacular; ADR-0010).
+- `POST /api/v1/auth/logout/` blacklists the presented refresh token
+  (ADR-0009).
+- API rate limiting: anonymous 60/min, authenticated 240/min, and a dedicated
+  10/min scope on login; all env-overridable (ADR-0009).
+- CORS support with explicit, env-driven allowed origins for the web client
+  (ADR-0009).
+- Blocking `pip-audit` job in CI over production dependencies.
 - Operational runbooks (`docs/runbooks/`): Render deployment, notification
   dispatcher, incident response.
 - Dependabot configuration for pip (`backend/`) and GitHub Actions dependencies.
@@ -16,9 +25,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **Breaking (pre-1.0):** all 4xx/5xx responses now use the
+  drf-standardized-errors envelope `{"type", "errors": [{"code", "detail",
+  "attr"}]}` (ADR-0010).
+- Refresh-token rotation now blacklists the rotated-out token.
+- Blood-request transition endpoints enforce the ADR-0008 role matrix
+  per-action at the API permission layer (cancel/receive vs
+  accept/reject/ship).
 - Product scope now targets a web client alongside the mobile client (owner
   decision, 2026-07-26; see ADR-0009 and `docs/CONTEXT.md`). Docs updated
   accordingly.
+- Tooling: pytest-django is the canonical test runner (hermetic
+  `config.settings.test`, suite runs in ~3s); ruff replaces
+  black/flake8/isort; CI enforces an 85% coverage gate; pre-commit added.
+
+### Security
+
+- Dependency upgrades resolving published advisories: Django 5.2.7 → 5.2.16,
+  django-allauth 65.12.1 → 65.14.1, djangorestframework-simplejwt
+  5.3.1 → 5.5.1.
 
 ## Backend baseline — retrospective (2025-10 → 2026-07)
 
