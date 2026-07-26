@@ -61,3 +61,7 @@ Negative:
 ## Migration path
 
 If delivery volume or reliability requirements increase, replace scheduler-triggered command execution with queue-backed workers while preserving the same adapter interfaces and Notification Event contract.
+
+## Addendum (2026-07)
+
+The dispatcher command gained a long-running worker mode: `dispatch_notifications --loop [--interval N]` (default 60 s) runs one batch per cycle in-process, with graceful SIGTERM/SIGINT shutdown (finish the in-flight batch, exit 0) and per-cycle exception isolation. This stays within this ADR's no-broker decision — it is the same management command supervised by the container runtime rather than an external scheduler — and is now the recommended production path once infrastructure allows; one-shot mode remains for cron-style scheduling. Each event is additionally claimed and delivered in its own transaction (`select_for_update(skip_locked=True)`), giving at-least-once push delivery and exactly-once in-app records, and making concurrent dispatchers safe. See docs/runbooks/notification-dispatcher.md.

@@ -8,6 +8,11 @@ class Command(BaseCommand):
     """
     Find and remove expired blood units from the database.
     Fulfills the data integrity requirement to not show expired inventory.
+
+    Intentionally one-shot (no --loop mode): expiry is date-granular, so this
+    is meant to be scheduled as a daily cron. The notification dispatcher
+    worker does NOT run this command. See
+    docs/runbooks/notification-dispatcher.md.
     """
 
     help = "Removes all blood units that have passed their expiration date."

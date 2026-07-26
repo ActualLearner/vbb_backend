@@ -14,6 +14,23 @@ services:
     volumes:
       - .:/app
 
+  # Notification dispatcher worker (ADR-0002 loop mode). Optional for local
+  # dev: only needed when you want notifications delivered continuously;
+  # otherwise run `python manage.py dispatch_notifications` by hand.
+  worker:
+    build:
+      context: .
+      target: dev
+    command: python manage.py dispatch_notifications --loop
+    env_file:
+      - .env
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: unless-stopped
+    volumes:
+      - .:/app
+
   db:
     image: postgres:16
     env_file:

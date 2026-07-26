@@ -273,11 +273,16 @@ accumulating business logic.
     (pending → accepted/rejected → shipped → received, or cancelled). Transitions are
     only permitted from valid states and by authorized facilities. See
     [ADR-0001](../docs/architecture/decisions/ADR-0001-blood-request-transitions.md).
-*   **Notifications** — domain events are persisted, then a scheduled dispatcher
-    (`manage.py dispatch_notifications`) fans each event out to the FCM push channel
+*   **Notifications** — domain events are persisted, then the dispatcher
+    (`manage.py dispatch_notifications`, either as a `--loop` worker or scheduled
+    one-shot runs) fans each event out to the FCM push channel
     asynchronously, without a broker. See
-    [ADR-0002](../docs/architecture/decisions/ADR-0002-async-notification-dispatch-without-celery.md)
-    and [ADR-0007](../docs/architecture/decisions/ADR-0007-fcm-push-drop-sms.md).
+    [ADR-0002](../docs/architecture/decisions/ADR-0002-async-notification-dispatch-without-celery.md),
+    [ADR-0007](../docs/architecture/decisions/ADR-0007-fcm-push-drop-sms.md), and the
+    [dispatcher runbook](../docs/runbooks/notification-dispatcher.md). The separate
+    `manage.py remove_expired_blood` command purges expired inventory; it has no
+    worker mode and is meant to run as a daily cron (the notification worker does
+    not cover it).
 *   **Domain configuration** — clinical/business constants (blood types, expiry days,
     low-stock threshold, woreda range, page size) are centralized in
     `apps/inventory/config.py` and overridable via env. See [../docs/CONTEXT.md](../docs/CONTEXT.md).

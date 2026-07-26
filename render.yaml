@@ -26,6 +26,40 @@ services:
       - key: WEB_CONCURRENCY
         value: "3"
 
+  # --- Notification dispatcher worker (ready, deliberately off) -------------
+  # Background workers are a PAID Render feature: the blueprint spec states the
+  # `free` plan is "not available for private services, background workers, or
+  # cron jobs", and the spec offers no suspend/disable flag — so an active
+  # block would start billing (starter plan) on the next blueprint sync.
+  # Kept commented out until the project moves off the free tier; uncomment
+  # as-is and sync to enable. The command handles SIGTERM gracefully
+  # (finishes the in-flight batch, exits 0), so deploys are safe.
+  # Consider `autoDeploy: false` (new spelling: `autoDeployTrigger: 'off'`)
+  # initially so the first worker deploy is a deliberate manual action.
+  #
+  # - type: worker
+  #   name: vbb-notification-worker
+  #   runtime: docker
+  #   dockerfilePath: ./backend/Dockerfile
+  #   dockerContext: ./backend
+  #   dockerCommand: python manage.py dispatch_notifications --loop
+  #   plan: starter  # workers have no free plan
+  #   autoDeploy: false  # opt in to deploys explicitly at first
+  #   envVars:
+  #     - key: DJANGO_SETTINGS_MODULE
+  #       value: config.settings.prod
+  #     - key: SECRET_KEY
+  #       fromService:
+  #         name: vbb-backend
+  #         type: web
+  #         envVarKey: SECRET_KEY
+  #     - key: DATABASE_URL
+  #       fromDatabase:
+  #         name: vbb-db
+  #         property: connectionString
+  #     # Set NOTIFICATION_ADAPTERS (e.g. "stdout,fcm") and Firebase
+  #     # credentials here when enabling real pushes (see ADR-0007).
+
 databases:
   - name: vbb-db
     plan: free
