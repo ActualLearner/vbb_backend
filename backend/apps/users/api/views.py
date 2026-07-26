@@ -1,4 +1,5 @@
-from rest_framework import permissions, status, viewsets
+from drf_spectacular.utils import extend_schema, inline_serializer
+from rest_framework import permissions, serializers, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.exceptions import ValidationError
 from rest_framework.response import Response
@@ -46,20 +47,21 @@ class LogoutView(APIView):
 
     permission_classes = [permissions.IsAuthenticated]
 
+    @extend_schema(
+        request=inline_serializer(
+            name="LogoutRequest",
+            fields={"refresh": serializers.CharField()},
+        ),
+        responses={205: None},
+    )
     def post(self, request):
         refresh = request.data.get("refresh")
         if not refresh:
-            return Response(
-                {"detail": "A refresh token is required."},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
+            raise ValidationError({"refresh": "A refresh token is required."})
         try:
             RefreshToken(refresh).blacklist()
         except TokenError:
-            return Response(
-                {"detail": "Token is invalid or expired."},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
+            raise ValidationError({"refresh": "Token is invalid or expired."}) from None
         return Response(status=status.HTTP_205_RESET_CONTENT)
 
 
@@ -142,9 +144,11 @@ class MeView(APIView):
 
     permission_classes = [permissions.IsAuthenticated]
 
+    @extend_schema(responses=ProfileSerializer)
     def get(self, request):
         return Response(ProfileSerializer(request.user).data)
 
+    @extend_schema(request=ProfileSerializer, responses=ProfileSerializer)
     def patch(self, request):
         serializer = ProfileSerializer(request.user, data=request.data, partial=True)
         serializer.is_valid(raise_exception=True)
@@ -157,6 +161,12 @@ class ChangePasswordView(APIView):
 
     permission_classes = [permissions.IsAuthenticated]
 
+    @extend_schema(
+        request=ChangePasswordSerializer,
+        responses=inline_serializer(
+            "PasswordChanged", {"detail": serializers.CharField()}
+        ),
+    )
     def post(self, request):
         serializer = ChangePasswordSerializer(
             data=request.data, context={"request": request}

@@ -53,6 +53,9 @@ INSTALLED_APPS = [
     "corsheaders",
     "django_extensions",
     "django_filters",
+    "drf_spectacular",
+    "drf_spectacular_sidecar",
+    "drf_standardized_errors",
     "core",
     "users",
     "inventory",
@@ -149,6 +152,61 @@ REST_FRAMEWORK = {
         "user": env.str("THROTTLE_USER_RATE", default="240/min"),
         "auth": env.str("THROTTLE_AUTH_RATE", default="10/min"),
     },
+    # All 4xx/5xx bodies use the drf-standardized-errors envelope
+    # ({"type", "errors": [{"code", "detail", "attr"}]}) — see ADR-0010.
+    "EXCEPTION_HANDLER": "drf_standardized_errors.handler.exception_handler",
+    # drf-standardized-errors' AutoSchema extends drf-spectacular's so every
+    # operation also documents its error responses.
+    "DEFAULT_SCHEMA_CLASS": "drf_standardized_errors.openapi.AutoSchema",
+}
+
+# --- OPENAPI SCHEMA (drf-spectacular, ADR-0010) -----------------------------
+SPECTACULAR_SETTINGS = {
+    "TITLE": "Virtual Blood Bank API",
+    "VERSION": "1.0.0",
+    "DESCRIPTION": (
+        "A district-level mHealth system that helps rural Ethiopian health "
+        "facilities share blood in real time to reduce maternal mortality "
+        "from postpartum hemorrhage."
+    ),
+    "SERVE_INCLUDE_SCHEMA": False,
+    # The schema is not sensitive; the mobile/web teams need it without auth.
+    "SERVE_PERMISSIONS": ["rest_framework.permissions.AllowAny"],
+    "SERVE_AUTHENTICATION": [],
+    # Serve Swagger UI assets from the sidecar package (offline-friendly).
+    "SWAGGER_UI_DIST": "SIDECAR",
+    "SWAGGER_UI_FAVICON_HREF": "SIDECAR",
+    "REDOC_DIST": "SIDECAR",
+    # drf-standardized-errors integration: its enum postprocessing hook skips
+    # the dynamically generated *ErrorComponent enums so "attr"/"code" choices
+    # shared across serializers don't collide into bogus shared enums.
+    "ENUM_NAME_OVERRIDES": {
+        # status / from_status / to_status all share the RequestStatus choices;
+        # collapse them into one named enum instead of three colliding ones.
+        # Keep in sync with inventory.models.BloodRequest.RequestStatus.
+        "BloodRequestStatusEnum": [
+            ("PENDING", "Pending"),
+            ("ACCEPTED", "Accepted"),
+            ("REJECTED", "Rejected"),
+            ("IN_TRANSIT", "In Transit"),
+            ("FULFILLED", "Fulfilled"),
+            ("CANCELLED", "Cancelled"),
+        ],
+        "ValidationErrorEnum": "drf_standardized_errors.openapi_serializers.ValidationErrorEnum.choices",
+        "ClientErrorEnum": "drf_standardized_errors.openapi_serializers.ClientErrorEnum.choices",
+        "ServerErrorEnum": "drf_standardized_errors.openapi_serializers.ServerErrorEnum.choices",
+        "ErrorCode401Enum": "drf_standardized_errors.openapi_serializers.ErrorCode401Enum.choices",
+        "ErrorCode403Enum": "drf_standardized_errors.openapi_serializers.ErrorCode403Enum.choices",
+        "ErrorCode404Enum": "drf_standardized_errors.openapi_serializers.ErrorCode404Enum.choices",
+        "ErrorCode405Enum": "drf_standardized_errors.openapi_serializers.ErrorCode405Enum.choices",
+        "ErrorCode406Enum": "drf_standardized_errors.openapi_serializers.ErrorCode406Enum.choices",
+        "ErrorCode415Enum": "drf_standardized_errors.openapi_serializers.ErrorCode415Enum.choices",
+        "ErrorCode429Enum": "drf_standardized_errors.openapi_serializers.ErrorCode429Enum.choices",
+        "ErrorCode500Enum": "drf_standardized_errors.openapi_serializers.ErrorCode500Enum.choices",
+    },
+    "POSTPROCESSING_HOOKS": [
+        "drf_standardized_errors.openapi_hooks.postprocess_schema_enums",
+    ],
 }
 
 # --- SIMPLE JWT (SDS 2.3.3) -------------------------------------------------

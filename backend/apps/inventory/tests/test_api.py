@@ -77,11 +77,20 @@ class BloodRequestAPITests(TestCase):
             format="json",
         )
         self.assertEqual(resp.status_code, 400)
+        # Standardized error envelope (ADR-0010).
+        body = resp.json()
+        self.assertEqual(body["type"], "validation_error")
+        self.assertEqual(body["errors"][0]["attr"], "non_field_errors")
+        self.assertEqual(body["errors"][0]["code"], "invalid")
 
     def test_cannot_request_more_than_available(self):
         _stock(self.ful_facility, "A+", 1)
         resp = self._create_request(units=5)
         self.assertEqual(resp.status_code, 400)
+        body = resp.json()
+        self.assertEqual(body["type"], "validation_error")
+        self.assertEqual(body["errors"][0]["code"], "invalid")
+        self.assertIn("Not enough blood units", body["errors"][0]["detail"])
 
     def test_full_lifecycle_accept_ship_receive(self):
         _stock(self.ful_facility, "A+", 4)
@@ -146,6 +155,10 @@ class BloodRequestAPITests(TestCase):
         # A rejected request can no longer be shipped.
         resp = self.client.post(f"/api/v1/blood-requests/{request_id}/ship/")
         self.assertEqual(resp.status_code, 400)
+        # Invalid transitions surface via the standardized envelope (ADR-0010).
+        body = resp.json()
+        self.assertEqual(body["type"], "validation_error")
+        self.assertEqual(body["errors"][0]["code"], "invalid")
 
     def test_requesting_facility_can_cancel_pending(self):
         _stock(self.ful_facility, "A+", 3)
@@ -234,3 +247,6 @@ class DashboardAPITests(TestCase):
         self.client.force_authenticate(admin)
         resp = self.client.get("/api/v1/dashboard/")
         self.assertEqual(resp.status_code, 400)
+        body = resp.json()
+        self.assertEqual(body["type"], "validation_error")
+        self.assertIn("not associated with a facility", body["errors"][0]["detail"])
