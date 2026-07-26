@@ -49,6 +49,8 @@ INSTALLED_APPS = [
     "allauth.socialaccount.providers.google",
     "rest_framework",
     "rest_framework_simplejwt",
+    "rest_framework_simplejwt.token_blacklist",
+    "corsheaders",
     "django_extensions",
     "django_filters",
     "core",
@@ -64,6 +66,10 @@ MIDDLEWARE = [
     # WhiteNoise serves static files directly from the app container in
     # production. It must sit immediately after SecurityMiddleware.
     "whitenoise.middleware.WhiteNoiseMiddleware",
+    # CORS must run before any middleware that can generate a response
+    # (in particular CommonMiddleware) so preflight requests are answered
+    # and CORS headers are attached to every response (ADR-0009).
+    "corsheaders.middleware.CorsMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
@@ -132,6 +138,17 @@ REST_FRAMEWORK = {
     ],
     "DEFAULT_PAGINATION_CLASS": "rest_framework.pagination.PageNumberPagination",
     "PAGE_SIZE": 25,
+    # Baseline API rate limits (ADR-0009). The "auth" scope is applied to the
+    # login view to slow down credential-stuffing attempts.
+    "DEFAULT_THROTTLE_CLASSES": [
+        "rest_framework.throttling.AnonRateThrottle",
+        "rest_framework.throttling.UserRateThrottle",
+    ],
+    "DEFAULT_THROTTLE_RATES": {
+        "anon": env.str("THROTTLE_ANON_RATE", default="60/min"),
+        "user": env.str("THROTTLE_USER_RATE", default="240/min"),
+        "auth": env.str("THROTTLE_AUTH_RATE", default="10/min"),
+    },
 }
 
 # --- SIMPLE JWT (SDS 2.3.3) -------------------------------------------------
@@ -139,13 +156,16 @@ REST_FRAMEWORK = {
 # (VBB-FUN-UM-005); refresh lifetime maps to the 7-day "Remember Me"
 # (VBB-FUN-UM-007). Token claims carry the role and facility so the API gateway
 # can enforce the RBAC permission matrix without a DB lookup.
+# Refresh tokens rotate on every use and the used token is blacklisted
+# (ADR-0009), so a stolen refresh token stops working after the legitimate
+# client refreshes; logout blacklists the current refresh token explicitly.
 from datetime import timedelta  # noqa: E402
 
 SIMPLE_JWT = {
     "ACCESS_TOKEN_LIFETIME": timedelta(minutes=30),
     "REFRESH_TOKEN_LIFETIME": timedelta(days=7),
     "ROTATE_REFRESH_TOKENS": True,
-    "BLACKLIST_AFTER_ROTATION": False,
+    "BLACKLIST_AFTER_ROTATION": True,
     "USER_ID_FIELD": "id",
     "USER_ID_CLAIM": "user_id",
 }
@@ -157,7 +177,14 @@ AUTH_USER_MODEL = "users.User"
 # 1. FRONTEND CONFIGURATION
 # ------------------------------------------------------------------------------
 # The base URL of your React/Vue/etc. frontend application
-FRONTEND_URL = "http://localhost:5173"
+FRONTEND_URL = env("FRONTEND_URL", default="http://localhost:5173")
+
+# --- CORS (ADR-0009) --------------------------------------------------------
+# The web client is served from a different origin than the API, so browsers
+# need explicit CORS grants. Origins are env-driven and default to none;
+# dev.py adds the Vite dev server. CORS_ALLOW_ALL_ORIGINS is deliberately
+# never enabled.
+CORS_ALLOWED_ORIGINS = env.list("CORS_ALLOWED_ORIGINS", default=[])
 
 # These are the URLs that Django will generate in emails (e.g., for verification).
 # Your frontend application MUST have routes that can handle these URLs.

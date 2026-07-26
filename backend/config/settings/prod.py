@@ -77,12 +77,5 @@ DEFAULT_FROM_EMAIL = env(
 )
 
 # --- Frontend URLs ----------------------------------------------------------
-# Allow the deployed frontend origin to override the dev default from base.py.
-FRONTEND_URL = env("FRONTEND_URL", default=FRONTEND_URL)  # noqa: F405
-HEADLESS_FRONTEND_URLS = {
-    "account_confirm_email": f"{FRONTEND_URL}/verify-email/{{key}}",
-    "account_reset_password_from_key": f"{FRONTEND_URL}/forgot-password/{{key}}",
-    "account_signup": f"{FRONTEND_URL}/signup",
-    "socialaccount_login_error": f"{FRONTEND_URL}/login",
-    "account_reset_password": f"{FRONTEND_URL}/forgot-password",
-}
+# FRONTEND_URL is env-driven in base.py, which also derives
+# HEADLESS_FRONTEND_URLS from it, so no production override is needed here.

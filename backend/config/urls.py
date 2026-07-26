@@ -18,6 +18,7 @@ from users.api.views import (
     ChangePasswordView,
     EmailOrPhoneTokenView,
     FacilityViewSet,
+    LogoutView,
     MeView,
     UserViewSet,
 )
@@ -53,6 +54,7 @@ def healthz(request):
 auth_patterns = [
     path("login/", EmailOrPhoneTokenView.as_view(), name="token_obtain_pair"),
     path("refresh/", TokenRefreshView.as_view(), name="token_refresh"),
+    path("logout/", LogoutView.as_view(), name="logout"),
     path("me/", MeView.as_view(), name="me"),
     path("change-password/", ChangePasswordView.as_view(), name="change_password"),
 ]

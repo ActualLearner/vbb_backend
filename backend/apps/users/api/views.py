@@ -2,7 +2,10 @@ from rest_framework import permissions, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.exceptions import ValidationError
 from rest_framework.response import Response
+from rest_framework.throttling import ScopedRateThrottle
 from rest_framework.views import APIView
+from rest_framework_simplejwt.exceptions import TokenError
+from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.views import TokenObtainPairView
 
 from audit.services import record_audit
@@ -22,9 +25,42 @@ from .serializers import (
 
 
 class EmailOrPhoneTokenView(TokenObtainPairView):
-    """Obtain a JWT pair using email or phone + password (SDS 2.3.3)."""
+    """Obtain a JWT pair using email or phone + password (SDS 2.3.3).
+
+    Rate-limited under the dedicated "auth" scope (ADR-0009) so credential
+    stuffing against the login endpoint is throttled independently of the
+    general anonymous rate.
+    """
 
     serializer_class = EmailOrPhoneTokenSerializer
+    throttle_classes = [ScopedRateThrottle]
+    throttle_scope = "auth"
+
+
+class LogoutView(APIView):
+    """Blacklist the presented refresh token so it cannot be reused (ADR-0009).
+
+    The access token stays valid until it expires (30 minutes at most);
+    clients discard both tokens on logout.
+    """
+
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request):
+        refresh = request.data.get("refresh")
+        if not refresh:
+            return Response(
+                {"detail": "A refresh token is required."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        try:
+            RefreshToken(refresh).blacklist()
+        except TokenError:
+            return Response(
+                {"detail": "Token is invalid or expired."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        return Response(status=status.HTTP_205_RESET_CONTENT)
 
 
 class FacilityViewSet(viewsets.ModelViewSet):

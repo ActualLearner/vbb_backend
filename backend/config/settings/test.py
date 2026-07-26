@@ -40,6 +40,18 @@ STORAGES = {
     },
 }
 
+# Keep the throttle classes installed so throttling stays testable via
+# override_settings, but raise the rates so the suite's rapid-fire requests
+# never trip them.
+REST_FRAMEWORK = {
+    **REST_FRAMEWORK,
+    "DEFAULT_THROTTLE_RATES": {
+        "anon": "10000/min",
+        "user": "10000/min",
+        "auth": "10000/min",
+    },
+}
+
 # Serve static files via finders so WhiteNoise doesn't warn about a missing
 # STATIC_ROOT (collectstatic is never run for tests).
 WHITENOISE_AUTOREFRESH = True
