@@ -124,6 +124,14 @@ class BloodRequestSerializer(serializers.ModelSerializer):
         return data
 
 
+class RejectRequestSerializer(serializers.Serializer):
+    """Request body for the reject action (optional free-text reason)."""
+
+    reason = serializers.CharField(
+        max_length=255, required=False, allow_blank=True, default=""
+    )
+
+
 class InventorySummarySerializer(serializers.Serializer):
     """
     A read-only serializer for displaying aggregated blood unit counts.

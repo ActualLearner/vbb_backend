@@ -57,6 +57,10 @@ class JWTAuthTests(TestCase):
     def test_protected_endpoint_requires_token(self):
         resp = self.client.get("/api/v1/dashboard/")
         self.assertEqual(resp.status_code, 401)
+        # Standardized error envelope (ADR-0010).
+        body = resp.json()
+        self.assertEqual(body["type"], "client_error")
+        self.assertEqual(body["errors"][0]["code"], "not_authenticated")
 
     def test_bearer_token_grants_access(self):
         access = self._login("pro1@example.com").json()["access"]
@@ -91,6 +95,10 @@ class ProfileAndPasswordTests(TestCase):
             format="json",
         )
         self.assertEqual(resp.status_code, 400)
+        # Field errors carry the offending attr in the envelope (ADR-0010).
+        body = resp.json()
+        self.assertEqual(body["type"], "validation_error")
+        self.assertEqual(body["errors"][0]["attr"], "new_password")
 
     def test_change_password_success(self):
         resp = self.client.post(

@@ -2,7 +2,9 @@ from dataclasses import asdict
 
 from django.db import models
 from django_filters.rest_framework import DjangoFilterBackend
-from rest_framework import mixins, status, viewsets
+from drf_spectacular.types import OpenApiTypes
+from drf_spectacular.utils import OpenApiParameter, extend_schema
+from rest_framework import mixins, viewsets
 from rest_framework.decorators import action
 from rest_framework.exceptions import PermissionDenied, ValidationError
 from rest_framework.permissions import IsAuthenticated
@@ -24,9 +26,20 @@ from .serializers import (
     BloodUnitSerializer,
     DashboardSerializer,
     InventorySummarySerializer,
+    RejectRequestSerializer,
 )
 
 
+@extend_schema(
+    parameters=[
+        OpenApiParameter(
+            "facility_pk",
+            OpenApiTypes.UUID,
+            OpenApiParameter.PATH,
+            description="Facility ID.",
+        )
+    ]
+)
 class BloodUnitViewSet(viewsets.ModelViewSet):
     """
     API endpoint for managing blood units FOR A SPECIFIC FACILITY.
@@ -36,6 +49,8 @@ class BloodUnitViewSet(viewsets.ModelViewSet):
     SUPPLY staff updating their own facility (ADR-0008 permission matrix).
     """
 
+    # Schema generation needs a model queryset; requests use get_queryset().
+    queryset = BloodUnit.objects.none()
     serializer_class = BloodUnitSerializer
     filter_backends = [DjangoFilterBackend]
     filterset_class = BloodUnitFilter
@@ -46,6 +61,8 @@ class BloodUnitViewSet(viewsets.ModelViewSet):
         return [IsAuthenticated(), PasswordChangeNotRequired()]
 
     def get_queryset(self):
+        if getattr(self, "swagger_fake_view", False):
+            return BloodUnit.objects.none()
         facility_pk = self.kwargs.get("facility_pk")
         try:
             facility = Facility.objects.get(pk=facility_pk)
@@ -118,13 +135,16 @@ class BloodRequestViewSet(viewsets.ModelViewSet):
 
     def _respond(self, result):
         if result.error:
-            return Response({"error": result.error}, status=status.HTTP_400_BAD_REQUEST)
+            # Raise so the response uses the standardized error envelope
+            # (ADR-0010) instead of an ad-hoc {"error": ...} body.
+            raise ValidationError(result.error)
         # The object was fetched with prefetched status_events before the
         # transition added a new one; drop the cache so the response reflects
         # the freshly recorded history.
         result.request._prefetched_objects_cache = {}
         return Response(self.get_serializer(result.request).data)
 
+    @extend_schema(request=None, responses=BloodRequestSerializer)
     @action(detail=True, methods=["post"])
     def accept(self, request, pk=None):
         result = BloodRequestTransitionService(
@@ -132,11 +152,13 @@ class BloodRequestViewSet(viewsets.ModelViewSet):
         ).accept(request.user, self.get_object())
         return self._respond(result)
 
+    @extend_schema(request=None, responses=BloodRequestSerializer)
     @action(detail=True, methods=["post"])
     def ship(self, request, pk=None):
         result = BloodRequestTransitionService().ship(request.user, self.get_object())
         return self._respond(result)
 
+    @extend_schema(request=None, responses=BloodRequestSerializer)
     @action(detail=True, methods=["post"])
     def receive(self, request, pk=None):
         result = BloodRequestTransitionService().receive(
@@ -144,11 +166,13 @@ class BloodRequestViewSet(viewsets.ModelViewSet):
         )
         return self._respond(result)
 
+    @extend_schema(request=None, responses=BloodRequestSerializer)
     @action(detail=True, methods=["post"])
     def cancel(self, request, pk=None):
         result = BloodRequestTransitionService().cancel(request.user, self.get_object())
         return self._respond(result)
 
+    @extend_schema(request=RejectRequestSerializer, responses=BloodRequestSerializer)
     @action(detail=True, methods=["post"])
     def reject(self, request, pk=None):
         reason = (
@@ -186,12 +210,27 @@ class DistrictInventoryView(APIView):
 
     permission_classes = [IsAuthenticated, PasswordChangeNotRequired]
 
+    @extend_schema(
+        parameters=[
+            OpenApiParameter(
+                "search",
+                OpenApiTypes.STR,
+                OpenApiParameter.QUERY,
+                description="Filter by facility name (case-insensitive contains).",
+            ),
+            OpenApiParameter(
+                "blood_type",
+                OpenApiTypes.STR,
+                OpenApiParameter.QUERY,
+                description="Filter by blood type (e.g. A+, O-).",
+            ),
+        ],
+        responses=InventorySummarySerializer(many=True),
+    )
     def get(self, request, *args, **kwargs):
         facility = request.user.facility
         if not facility:
-            return Response(
-                {"error": "User is not associated with a facility."}, status=400
-            )
+            raise ValidationError("User is not associated with a facility.")
 
         qs = BloodUnit.objects.filter(
             facility__woreda=facility.woreda, facility__is_active=True
@@ -221,12 +260,11 @@ class DashboardAPIView(APIView):
 
     LOW_STOCK_THRESHOLD = LOW_STOCK_THRESHOLD
 
+    @extend_schema(responses=DashboardSerializer)
     def get(self, request, *args, **kwargs):
         facility = request.user.facility
         if not facility:
-            return Response(
-                {"error": "User is not associated with a facility."}, status=400
-            )
+            raise ValidationError("User is not associated with a facility.")
 
         dashboard_data = FacilityDashboardService(
             low_stock_threshold=self.LOW_STOCK_THRESHOLD

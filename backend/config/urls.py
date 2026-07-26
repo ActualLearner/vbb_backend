@@ -2,6 +2,7 @@ from django.contrib import admin
 from django.http import JsonResponse
 from django.urls import include, path
 from django.views.generic import TemplateView
+from drf_spectacular.views import SpectacularAPIView, SpectacularSwaggerView
 from rest_framework_nested import routers
 from rest_framework_simplejwt.views import TokenRefreshView
 
@@ -65,6 +66,15 @@ urlpatterns = [
     path("accounts/", include("allauth.urls")),
     path("_allauth/", include("allauth.headless.urls")),
     # --- API URLS ---
+    # OpenAPI schema + interactive docs. Unauthenticated on purpose: the
+    # schema is not sensitive and the mobile/web teams consume it directly
+    # (permissions come from SPECTACULAR_SETTINGS SERVE_PERMISSIONS).
+    path("api/schema/", SpectacularAPIView.as_view(), name="schema"),
+    path(
+        "api/docs/",
+        SpectacularSwaggerView.as_view(url_name="schema"),
+        name="swagger-ui",
+    ),
     path("api/v1/auth/", include(auth_patterns)),
     path("api/v1/", include(router.urls + facilities_router.urls)),
     path("api/v1/dashboard/", DashboardAPIView.as_view(), name="dashboard"),

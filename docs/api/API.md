@@ -32,12 +32,74 @@ Query params: `?page=<n>`. **Not paginated:** `…/inventory-summary/`, `/dashbo
 `/district-inventory/`, and the `donation-centers/nearby/` action (return plain arrays).
 
 ### Errors
-| Status | Meaning | Body |
+
+All error responses (4xx/5xx) use the **standardized envelope** from
+`drf-standardized-errors` (ADR-0010):
+
+```json
+{
+  "type": "validation_error" | "client_error" | "server_error",
+  "errors": [
+    { "code": "<machine-readable>", "detail": "<human-readable>", "attr": "<field or null>" }
+  ]
+}
+```
+
+- `type` — `validation_error` for `400`, `client_error` for other 4xx,
+  `server_error` for 5xx.
+- `code` — stable machine-readable identifier (e.g. `required`, `invalid`,
+  `not_authenticated`, `permission_denied`, `not_found`).
+- `attr` — the offending field for validation errors; `non_field_errors` for
+  object-level validation; `null` otherwise.
+
+Validation error (`400`) — e.g. weak password on `change-password`:
+
+```json
+{
+  "type": "validation_error",
+  "errors": [
+    {
+      "code": "password_too_short",
+      "detail": "This password is too short. It must contain at least 8 characters.",
+      "attr": "new_password"
+    }
+  ]
+}
+```
+
+Auth error (`401`) — missing/invalid/expired token:
+
+```json
+{
+  "type": "client_error",
+  "errors": [
+    {
+      "code": "not_authenticated",
+      "detail": "Authentication credentials were not provided.",
+      "attr": null
+    }
+  ]
+}
+```
+
+| Status | Meaning | `type` |
 | :-- | :-- | :-- |
-| `400` | Validation error | `{"field": ["message"]}`, or `{"error": "..."}` for lifecycle transitions |
-| `401` | Missing/invalid/expired token | `{"detail": "Authentication credentials were not provided."}` |
-| `403` | Authenticated but not permitted (wrong role/facility, or password change pending) | `{"detail": "..."}` |
-| `404` | Not found (or not visible to the caller) | `{"detail": "Not found."}` |
+| `400` | Validation error (incl. invalid lifecycle transitions) | `validation_error` |
+| `401` | Missing/invalid/expired token | `client_error` |
+| `403` | Authenticated but not permitted (wrong role/facility, or password change pending) | `client_error` |
+| `404` | Not found (or not visible to the caller) | `client_error` |
+
+### Interactive docs
+
+The backend serves a generated OpenAPI 3 schema (drf-spectacular) — always in
+sync with the code, unlike this hand-written contract:
+
+- **Swagger UI:** [`/api/docs/`](/api/docs/) — browse and try endpoints.
+- **OpenAPI schema:** [`/api/schema/`](/api/schema/) — machine-readable YAML;
+  feed it to a client generator (e.g. `openapi-typescript`, `openapi-generator`).
+
+Both endpoints are public (no auth required). Where this document and the
+generated schema disagree, the schema wins.
 
 ### Enumerations
 - **Role:** `ADMIN`, `SUPPLY`, `CLINICIAN`
@@ -78,7 +140,8 @@ Response `200`:
 ```json
 { "access": "<jwt>", "refresh": "<jwt>" }
 ```
-Failure `401`: `{"detail": "No active account found with the given credentials"}`
+Failure `401`: a `client_error` envelope with
+`"detail": "No active account found with the given credentials"`
 (also returned for an inactive/deactivated account).
 
 **Access-token claims:** `user_id`, `role`, `facility_id` (or `null`), `full_name`,
@@ -237,7 +300,8 @@ from your own facility or if the fulfilling facility lacks enough units.
 
 ### Lifecycle actions
 All are `POST` to `/blood-requests/{id}/<action>/`. Success returns the updated
-request object; an invalid state transition returns `400 {"error": "..."}`; a
+request object; an invalid state transition returns `400` with a
+`validation_error` envelope (see [Errors](#errors)); a
 caller without the right role/facility returns `403`.
 
 | Action | Allowed from | Performed by | Effect |

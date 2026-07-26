@@ -1,4 +1,5 @@
-from rest_framework import permissions, status, viewsets
+from drf_spectacular.utils import extend_schema, inline_serializer
+from rest_framework import permissions, serializers, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.exceptions import ValidationError
 from rest_framework.response import Response
@@ -106,9 +107,11 @@ class MeView(APIView):
 
     permission_classes = [permissions.IsAuthenticated]
 
+    @extend_schema(responses=ProfileSerializer)
     def get(self, request):
         return Response(ProfileSerializer(request.user).data)
 
+    @extend_schema(request=ProfileSerializer, responses=ProfileSerializer)
     def patch(self, request):
         serializer = ProfileSerializer(request.user, data=request.data, partial=True)
         serializer.is_valid(raise_exception=True)
@@ -121,6 +124,12 @@ class ChangePasswordView(APIView):
 
     permission_classes = [permissions.IsAuthenticated]
 
+    @extend_schema(
+        request=ChangePasswordSerializer,
+        responses=inline_serializer(
+            "PasswordChanged", {"detail": serializers.CharField()}
+        ),
+    )
     def post(self, request):
         serializer = ChangePasswordSerializer(
             data=request.data, context={"request": request}
