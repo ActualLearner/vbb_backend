@@ -5,7 +5,10 @@
 > user lifecycle, request notes/timestamps/history, donor-center mapping,
 > district inventory, expiring-soon alerts, FCM push, audit trail). The phase
 > breakdown below is retained for historical context. Design deviations are
-> recorded in `docs/architecture/decisions/` (ADR-0004 … ADR-0007).
+> recorded in `docs/architecture/decisions/` (ADR-0004 onward). Note the
+> product now targets a web client in addition to the mobile client — an owner
+> decision (2026-07-26) post-dating the PDFs; see ADR-0009 and
+> `docs/CONTEXT.md` Product Scope.
 
 ## Objective
 

@@ -8,10 +8,14 @@
 ## Product Scope
 
 - The current repository is the backend API for the Virtual Blood Bank product.
-- The mobile client (cross-platform, per SRS VBB-DC-001) is the remaining
-  deliverable and is out of scope for this repository.
-- The product is one system with two components: a mobile client and a backend
-  API; the backend is now feature-complete against the PDFs (see deviations).
+- The product targets **two clients — a mobile client and a web client** — on
+  top of this backend API. The SRS (VBB-DC-001) specified a mobile client only;
+  the addition of a web client is an owner decision of 2026-07-26 that
+  post-dates the SRS/SDS PDFs. It is recorded here as a deliberate deviation
+  and is being captured in ADR-0009 (web client support, CORS, and token
+  security hardening); the PDFs have not been revised.
+- Both clients are future deliverables and out of scope for this repository.
+- The backend is feature-complete against the PDFs (see deviations).
 
 ## Canonical Terms
 

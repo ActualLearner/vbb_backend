@@ -28,3 +28,14 @@ The markdown product docs below are condensed summaries of the PDFs.
   - ADR-0005 JWT authentication
   - ADR-0006 Two-role RBAC and the SDS permission matrix
   - ADR-0007 FCM push delivery; drop SMS
+  - ADR-0008 Three-role least-privilege RBAC
+  - ADR-0009 Web client support, CORS, and token security hardening
+  - ADR-0010 OpenAPI schema and standardized error envelope
+
+## Runbooks
+
+Operational guides for running the system in production:
+
+- [Deploying to Render](runbooks/deploy.md) — blueprint, env vars, migrations, rollback
+- [Notification dispatcher](runbooks/notification-dispatcher.md) — how dispatch works, scheduling, failure modes, verifying delivery
+- [Incident response](runbooks/incident-response.md) — triage for API/DB/auth/notification incidents; where logs live

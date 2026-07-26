@@ -7,7 +7,7 @@
 
 # Virtual Blood Bank (VBB) - Backend API
 
-**A Django & DRF backend to power a life-saving mobile application for healthcare professionals in Ethiopia.**
+**A Django & DRF backend to power life-saving mobile and web applications for healthcare professionals in Ethiopia.**
 
 </div>
 
@@ -22,7 +22,7 @@
 
 ## 📖 Overview
 
-Welcome to the Virtual Blood Bank (VBB) project! This repository contains the backend API that drives the VBB mobile app. Our goal is to create a reliable platform for healthcare workers in rural areas to manage blood inventory and request blood from nearby facilities, ultimately saving lives.
+Welcome to the Virtual Blood Bank (VBB) project! This repository contains the backend API that drives the VBB mobile and web clients. Our goal is to create a reliable platform for healthcare workers in rural areas to manage blood inventory and request blood from nearby facilities, ultimately saving lives.
 
 The API now includes a robust, **nested resource structure** and a **stateful blood request lifecycle**, enabling complex inter-facility coordination.
 
@@ -59,7 +59,7 @@ If you're coming from a pure Django background, some parts of this project's str
 *   **Static Files:** [WhiteNoise](https://whitenoise.readthedocs.io/) (served from the app container in production)
 *   **Task Runner:** [GNU Make](https://www.gnu.org/software/make/)
 *   **Configuration:** `django-environ`
-*   **Code Quality:** `flake8` (Linting), `black` (Formatting), `isort` (Import Sorting)
+*   **Code Quality:** linting, formatting, and tests run via `make lint`, `make format`, and `make test` (tool configuration lives in `pyproject.toml`)
 *   **CI/CD:** GitHub Actions (lint + test + Docker build); deployable to [Render](https://render.com/)
 
 ## 📚 Documentation Structure
@@ -67,13 +67,14 @@ If you're coming from a pure Django background, some parts of this project's str
 Project documentation is organized by purpose:
 
 Documentation lives at the repository root (`../docs/`), shared across the
-backend and the future mobile client:
+backend and the future mobile and web clients:
 
 *   **Authoritative specs:** `../docs/SRS.pdf`, `../docs/SDS.pdf`
 *   **API contract** (endpoints, payloads, auth, errors): [../docs/api/API.md](../docs/api/API.md)
 *   **Domain Context:** [../docs/CONTEXT.md](../docs/CONTEXT.md)
 *   **Architecture Decisions (ADRs):** `../docs/architecture/decisions/`
 *   **Product Specs (SRS/SDS/Phases):** `../docs/product/`
+*   **Runbooks (deploy, dispatcher, incidents):** `../docs/runbooks/`
 *   **Documentation index:** `../docs/README.md`
 
 ## 🚀 Getting Started: A 5-Minute Setup
@@ -100,10 +101,11 @@ Before you begin, ensure you have the following installed on your system:
     *(The default values are fine for local development.)*
 
 3.  **Run the Automated Setup**
-    This single command builds the Docker containers, starts the services, and runs initial migrations and data seeding.
+    This single command builds the Docker containers, starts the services, and runs initial migrations.
     ```sh
     make setup
     ```
+    *(Optional: seed development data with `docker compose exec web python manage.py seed_dev_data`.)*
 
 4.  **Create an Admin Superuser**
     You'll need an admin account to manage data via the Django Admin interface.
@@ -120,21 +122,21 @@ Before you begin, ensure you have the following installed on your system:
 
 ## 👤 User Flows for Testing
 
-For development and testing, simple login and signup pages are provided. These are **not** the final frontend but are essential tools for interacting with the browsable API as an authenticated user.
+For development and testing, a simple login page is provided at the site root.
+It is **not** the final frontend but is a handy tool for interacting with the
+browsable API as an authenticated user.
 
-**Note:** For ease of local development, email verification and manual admin approval are currently disabled. A new user is **active immediately** upon signup.
+**Note:** There is no self-service signup — accounts are provisioned by an
+admin (via `POST /api/v1/users/`, which returns a temporary password, or via
+`make superuser` / the Django admin). Newly provisioned users must change
+their password on first login before other endpoints unlock.
 
-### New User Signup Flow
-
-1.  **Navigate to Signup:** Go to [http://127.0.0.1:8000/signup/](http://127.0.0.1:8000/signup/).
-2.  **Fill the Form:** Enter a username, email, password, and select a facility from the dropdown.
-3.  **Login:** Upon successful submission, the account is created and is immediately active. You can now proceed directly to the login page.
-
-### Existing User Login Flow
+### Login Flow
 
 1.  **Navigate to Login:** Go to [http://127.0.0.1:8000/](http://127.0.0.1:8000/).
-2.  **Enter Credentials:** Use the email and password of an active user.
-3.  **Access API:** Upon successful login, you are redirected to the browsable API root. Your browser session is now authenticated, and you can interact with the API according to your user's permissions.
+2.  **Enter Credentials:** Use the email (or phone) and password of an active user.
+3.  **Access API:** Upon successful login you can interact with the API
+    according to your user's role and facility.
 
 ---
 
@@ -206,7 +208,9 @@ Use these `make` commands to manage your environment. **Run `make help` for a fu
 ### Code Quality & Database
 | Command | Description |
 | :--- | :--- |
-| `make format` | 🎨 Auto-formats all Python code with `black` and `isort`. |
+| `make format` | 🎨 Auto-formats all Python code. |
+| `make lint` | 🔎 Checks for linting and formatting issues. |
+| `make test` | 🧪 Runs the test suite. |
 | `make migrate` | 🏃 Runs any pending database migrations. |
 | `make superuser`| 👑 Creates a new Django superuser account. |
 | `make shell` | 💻 Opens an interactive shell inside the Django container. |
@@ -214,7 +218,8 @@ Use these `make` commands to manage your environment. **Run `make help` for a fu
 ## 📁 Project Structure
 
 The repository is a monorepo. This backend lives in `backend/`; product/architecture
-documentation is at the repo root in `docs/`; the mobile client will live in `mobile/`.
+documentation is at the repo root in `docs/`; the mobile and web clients will live
+in `mobile/` and `web/`.
 
 ```
 <repo root>/
@@ -236,11 +241,12 @@ documentation is at the repo root in `docs/`; the mobile client will live in `mo
 │   ├── compose.yaml            # Local dev services (web, db, lint, test)
 │   ├── Dockerfile              # Multi-stage build (base / dev / prod)
 │   ├── Makefile                # Dev workflow shortcuts (run `make help`)
-│   ├── pyproject.toml          # Dependencies + tool config (black/isort/flake8)
+│   ├── pyproject.toml          # Dependencies + tool config
 │   └── README.md               # You are here!
 ├── docs/                       # Documentation (see docs/README.md)
 │   ├── SRS.pdf, SDS.pdf        #   Authoritative specifications
 │   ├── architecture/decisions/ #   ADRs
+│   ├── runbooks/               #   Operational runbooks
 │   └── product/                #   SRS/SDS summaries, delivery phases
 ├── render.yaml                 # Render deployment blueprint (points to ./backend)
 └── README.md                   # Monorepo overview
@@ -284,7 +290,7 @@ Production runs the **`prod` stage** of the multi-stage `Dockerfile` — no Dock
 Compose. Configuration is entirely env-driven via `config.settings.prod`.
 
 1.  Push the repo to GitHub and create a new **Blueprint** on Render pointing at
-    [`render.yaml`](render.yaml). It provisions the web service + a managed
+    [`render.yaml`](../render.yaml). It provisions the web service + a managed
     PostgreSQL 16 database.
 2.  `SECRET_KEY` is generated by Render; `DATABASE_URL` is wired from the database;
     `RENDER_EXTERNAL_HOSTNAME` is injected and automatically added to
@@ -293,6 +299,9 @@ Compose. Configuration is entirely env-driven via `config.settings.prod`.
     Gunicorn on `$PORT`. Static files are collected at image-build time and served by
     WhiteNoise.
 4.  Health checks hit `GET /healthz/`.
+
+For the full operational procedure (env vars, rollback, troubleshooting), see
+the [deploy runbook](../docs/runbooks/deploy.md).
 
 To build the production image locally:
 
