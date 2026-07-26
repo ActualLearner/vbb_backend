@@ -1,13 +1,43 @@
+# VCS / CI metadata
 .git
+.gitignore
 .github
+.pre-commit-config.yaml
+
+# Secrets — never bake env files into an image layer. (.env.example is also
+# excluded: it is documentation, not runtime input.)
+.env
+.env.*
+.env.example
+
+# Python build/test caches (dockerignore patterns anchor at the context root,
+# so nested caches need the **/ prefix)
+**/__pycache__
+**/*.pyc
+**/*.pyo
+**/*.pyd
 .pytest_cache
-__pycache__
+.ruff_cache
+.mypy_cache
+.coverage
+htmlcov
+
+# Virtualenvs
 venv
 .venv
+
+# Local databases and build output (staticfiles is generated in the image)
+**/*.sqlite3
+staticfiles
+
+# Docs and container plumbing (not needed inside the image)
 docs
+README.md
+Makefile
+Dockerfile
+compose.yaml
+.dockerignore
+
+# Tests are excluded from images; the compose `test` service bind-mounts the
+# source tree, so pytest still sees them in dev.
 tests
-*.pyc
-*.pyo
-*.pyd
-*.sqlite3
-.env

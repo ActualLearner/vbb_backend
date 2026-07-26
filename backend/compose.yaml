@@ -13,6 +13,19 @@ services:
         condition: service_healthy
     volumes:
       - .:/app
+    restart: unless-stopped
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "python",
+          "-c",
+          "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/healthz/', timeout=4)",
+        ]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
 
   # Notification dispatcher worker (ADR-0002 loop mode). Optional for local
   # dev: only needed when you want notifications delivered continuously;
@@ -37,6 +50,7 @@ services:
       - .env
     volumes:
       - postgresql_data:/var/lib/postgresql/data
+    restart: unless-stopped
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
       interval: 5s
@@ -51,8 +65,9 @@ services:
       context: .
       target: dev
     command: sh -c "./scripts/lint.sh"
+    restart: "no"
     volumes:
-      - ${PWD}:/app/
+      - .:/app
 
   # --- TESTING SERVICE ---
 
@@ -61,6 +76,7 @@ services:
       context: .
       target: dev
     command: pytest
+    restart: "no"
     env_file:
       - .env
     volumes:
