@@ -2,10 +2,10 @@
 
 set -e
 
-echo "Formatting with black..."
-black apps/ config/
+echo "Fixing lint issues with ruff..."
+ruff check --fix apps/ config/ tests/ manage.py
 
-echo "Sorting imports with isort..."
-isort apps/ config/
+echo "Formatting with ruff..."
+ruff format apps/ config/ tests/ manage.py
 
 echo "Formatting complete!"

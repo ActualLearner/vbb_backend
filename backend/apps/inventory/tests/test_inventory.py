@@ -2,6 +2,7 @@ from datetime import date, timedelta
 
 from django.contrib.auth import get_user_model
 from django.test import TestCase
+
 from inventory.domain.authorizers import BloodRequestAuthorizer
 from inventory.domain.dashboard import FacilityDashboardService
 from inventory.domain.lifecycle import BloodRequestLifecycleService

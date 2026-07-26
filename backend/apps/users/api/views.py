@@ -1,11 +1,12 @@
-from audit.services import record_audit
-from core.permissions import PasswordChangeNotRequired
 from rest_framework import permissions, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.exceptions import ValidationError
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework_simplejwt.views import TokenObtainPairView
+
+from audit.services import record_audit
+from core.permissions import PasswordChangeNotRequired
 
 from ..models import Facility, User
 from ..permissions import IsAdminOrReadOnly, IsAdminUser

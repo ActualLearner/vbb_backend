@@ -1,17 +1,17 @@
 from datetime import date, timedelta
 
 from django.test import TestCase
+from rest_framework.test import APIClient
+
 from inventory.models import BloodRequest, BloodUnit
 from notifications.models import NotificationEvent
-from rest_framework.test import APIClient
-from users.models import User
-
 from tests.factories import (
     create_clinician,
     create_facility,
     create_supply,
     create_user,
 )
+from users.models import User
 
 
 def _stock(facility, blood_type, count, days=10):

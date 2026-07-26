@@ -1,9 +1,9 @@
 from unittest import mock
 
 from django.test import TestCase
+
 from notifications.delivery import DeliveryService, FcmAdapter
 from notifications.models import NotificationEvent, NotificationRecord, NotificationType
-
 from tests.factories import create_facility, create_user
 
 

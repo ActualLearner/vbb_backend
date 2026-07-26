@@ -1,8 +1,8 @@
 from django.test import TestCase
 from rest_framework.test import APIClient
-from users.models import User
 
 from tests.factories import create_admin, create_facility, create_user
+from users.models import User
 
 
 class JWTAuthTests(TestCase):

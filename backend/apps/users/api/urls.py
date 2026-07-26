@@ -1,7 +1,8 @@
 from django.urls import include, path
-from inventory.api.views import BloodUnitViewSet, InventorySummaryViewSet
 from rest_framework.routers import DefaultRouter
 from rest_framework_nested import routers
+
+from inventory.api.views import BloodUnitViewSet, InventorySummaryViewSet
 
 from .views import FacilityViewSet, UserViewSet
 

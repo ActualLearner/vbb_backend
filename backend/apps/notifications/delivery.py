@@ -1,8 +1,8 @@
 import logging
 import os
-from typing import List
 
 from django.utils import timezone
+
 from users.models import User
 
 from .models import NotificationEvent, NotificationRecord
@@ -107,7 +107,7 @@ _ADAPTER_REGISTRY = {
 
 
 class DeliveryService:
-    def __init__(self, adapters: List[Adapter] | None = None):
+    def __init__(self, adapters: list[Adapter] | None = None):
         if adapters is not None:
             self.adapters = adapters
         else:

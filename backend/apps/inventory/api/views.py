@@ -1,7 +1,5 @@
 from dataclasses import asdict
 
-from audit.services import record_audit
-from core.permissions import PasswordChangeNotRequired
 from django.db import models
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import mixins, status, viewsets
@@ -10,6 +8,9 @@ from rest_framework.exceptions import PermissionDenied, ValidationError
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
+
+from audit.services import record_audit
+from core.permissions import PasswordChangeNotRequired
 from users.permissions import IsClinician, IsSupply
 
 from ..config import LOW_STOCK_THRESHOLD
@@ -57,7 +58,7 @@ class BloodUnitViewSet(viewsets.ModelViewSet):
         try:
             facility = Facility.objects.get(pk=facility_pk)
         except Facility.DoesNotExist:
-            raise ValidationError("Facility not found.")
+            raise ValidationError("Facility not found.") from None
         # Supply staff may only add to their own facility's inventory.
         if self.request.user.facility_id != facility.id:
             raise PermissionDenied("You can only add blood units to your own facility.")

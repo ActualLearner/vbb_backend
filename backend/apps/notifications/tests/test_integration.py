@@ -1,8 +1,8 @@
 from django.core.management import call_command
 from django.test import TestCase
-from notifications.models import NotificationEvent, NotificationRecord
 from rest_framework.test import APIClient
 
+from notifications.models import NotificationEvent, NotificationRecord
 from tests.factories import create_facility, create_user
 
 

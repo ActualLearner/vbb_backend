@@ -25,10 +25,10 @@ dependencies = [
 
 [project.optional-dependencies]
 dev = [
-  "black==25.9.0",
-  "flake8==7.3.0",
-  "isort==7.0.0",
   "pytest==8.4.2",
+  "pytest-django==4.12.0",
+  "pytest-cov==7.1.0",
+  "ruff==0.16.0",
 ]
 
 [tool.setuptools]
@@ -37,47 +37,54 @@ include-package-data = true
 [tool.setuptools.packages.find]
 include = ["apps*", "config*"]
 
-# Black Configuration
-[tool.black]
-line-length = 88
-target-version = ['py312']
-exclude = '''
-/(
-    \.git
-  | \.hg
-  | \.mypy_cache
-  | \.tox
-  | \.venv
-  | venv
-  | _build
-  | buck-out
-  | build
-  | dist
-  | migrations
-)/
-'''
-
-# Isort Configuration
-[tool.isort]
-profile = "black"
-line_length = 88
-skip_glob = ["**/venv/*", "**/migrations/*"]
-
-# Flake8 Configuration
-[tool.flake8]
-max-line-length = 88
-extend-ignore = [
-  "E203"
-]
-exclude = [
-  ".git",
-  "__pycache__",
-  ".pytest_cache",
-  "docker",
-  "migrations",
-  "venv",
-  "src/venv",
-]
-
 [tool.pytest.ini_options]
+DJANGO_SETTINGS_MODULE = "config.settings.test"
+# Make `from tests.factories import ...` resolve when running from backend/.
+pythonpath = ["."]
 python_files = ["tests.py", "test_*.py", "*_test.py"]
+testpaths = ["apps", "tests"]
+addopts = "--strict-markers"
+
+[tool.coverage.run]
+source = ["apps"]
+omit = ["*/migrations/*", "*/tests/*"]
+
+[tool.ruff]
+line-length = 88
+target-version = "py312"
+extend-exclude = ["migrations"]
+# Respect excludes even for files passed explicitly (e.g. by pre-commit).
+force-exclude = true
+
+[tool.ruff.lint]
+select = [
+  "E",  # pycodestyle errors
+  "W",  # pycodestyle warnings
+  "F",  # pyflakes
+  "I",  # isort
+  "UP", # pyupgrade
+  "B",  # flake8-bugbear
+  "DJ", # flake8-django
+]
+
+[tool.ruff.lint.per-file-ignores]
+# Settings modules use star imports by design.
+"config/settings/*.py" = ["F403", "F405", "E501"]
+
+[tool.ruff.lint.isort]
+# Apps are imported without the `apps.` prefix (see sys.path insert in
+# config/settings/base.py); `tests` holds the shared factories.
+known-first-party = [
+  "apps",
+  "audit",
+  "config",
+  "core",
+  "donations",
+  "inventory",
+  "notifications",
+  "tests",
+  "users",
+]
+
+[tool.ruff.format]
+# Defaults match black.

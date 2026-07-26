@@ -2,6 +2,9 @@ from django.contrib import admin
 from django.http import JsonResponse
 from django.urls import include, path
 from django.views.generic import TemplateView
+from rest_framework_nested import routers
+from rest_framework_simplejwt.views import TokenRefreshView
+
 from donations.api.views import DonationCenterViewSet
 from inventory.api.views import (
     BloodRequestViewSet,
@@ -11,8 +14,6 @@ from inventory.api.views import (
     InventorySummaryViewSet,
 )
 from notifications.api.views import NotificationRecordViewSet
-from rest_framework_nested import routers
-from rest_framework_simplejwt.views import TokenRefreshView
 from users.api.views import (
     ChangePasswordView,
     EmailOrPhoneTokenView,

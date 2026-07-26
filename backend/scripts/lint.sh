@@ -2,13 +2,10 @@
 
 set -e
 
-echo "Running flake8..."
-flake8 apps/ config/
+echo "Running ruff check..."
+ruff check apps/ config/ tests/ manage.py
 
-echo "Checking formatting with black..."
-black --check apps/ config/
-
-echo "Checking import order with isort"
-isort --check-only apps/ config/
+echo "Checking formatting with ruff format..."
+ruff format --check apps/ config/ tests/ manage.py
 
 echo "Linting checks passed!"

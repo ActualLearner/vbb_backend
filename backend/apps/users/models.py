@@ -1,9 +1,10 @@
 import uuid
 
-from core.validators import ethiopian_phone_validator
 from django.contrib.auth.models import AbstractUser
 from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import models
+
+from core.validators import ethiopian_phone_validator
 from inventory.config import WOREDA_MAX, WOREDA_MIN
 
 

@@ -1,5 +1,4 @@
 from dataclasses import dataclass
-from typing import List
 
 from ..models import BloodRequest, BloodRequestStatusEvent
 from .authorizers import BloodRequestAuthorizer
@@ -25,7 +24,7 @@ class BloodRequestTransitionResult:
     error: str | None = None
     remaining_units: int | None = None
     low_stock_alert: bool = False
-    events: List[str] | None = None
+    events: list[str] | None = None
 
 
 class BloodRequestTransitionService:

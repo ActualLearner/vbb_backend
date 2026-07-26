@@ -37,7 +37,7 @@ def generate_temp_password(length: int = 12) -> str:
 ethiopian_phone_validator = RegexValidator(
     regex=r"^(?:\+251|0)(?:9|7)\d{8}$",
     message=_(
-        "Enter a valid Ethiopian phone number " "(e.g. +251911223344 or 0911223344)."
+        "Enter a valid Ethiopian phone number (e.g. +251911223344 or 0911223344)."
     ),
 )
 

@@ -1,6 +1,7 @@
 from datetime import date, timedelta
 
 from django.contrib.auth import get_user_model
+
 from inventory.models import BloodUnit
 from users.models import Facility
 

@@ -2,6 +2,7 @@ import uuid
 
 from django.conf import settings
 from django.db import models
+
 from users.models import Facility
 
 from .config import BLOOD_TYPES

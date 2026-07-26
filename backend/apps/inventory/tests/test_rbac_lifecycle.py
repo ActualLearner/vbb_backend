@@ -1,10 +1,10 @@
 from datetime import date, timedelta
 
-from audit.models import AuditLog
 from django.test import TestCase
-from inventory.models import BloodRequest, BloodUnit
 from rest_framework.test import APIClient
 
+from audit.models import AuditLog
+from inventory.models import BloodRequest, BloodUnit
 from tests.factories import (
     create_admin,
     create_clinician,

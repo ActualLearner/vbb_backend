@@ -27,14 +27,11 @@ jobs:
           python -m pip install --upgrade pip
           pip install ".[dev]"
 
-      - name: flake8
-        run: flake8 apps/ config/
+      - name: ruff check
+        run: ruff check apps/ config/ tests/ manage.py
 
-      - name: black --check
-        run: black --check apps/ config/
-
-      - name: isort --check
-        run: isort --check-only apps/ config/
+      - name: ruff format --check
+        run: ruff format --check apps/ config/ tests/ manage.py
 
   test:
     runs-on: ubuntu-latest
@@ -60,7 +57,6 @@ jobs:
       POSTGRES_PASSWORD: vbb_pass
       POSTGRES_HOST: 127.0.0.1
       POSTGRES_PORT: 5432
-      DATABASE_URL: postgres://vbb:vbb_pass@127.0.0.1:5432/vbb_db
 
     steps:
       - uses: actions/checkout@v4
@@ -81,11 +77,15 @@ jobs:
         run: |
           for i in {1..30}; do pg_isready -h 127.0.0.1 -p 5432 -U vbb -d vbb_db && break || sleep 1; done
 
+      # Verifies migrations still apply cleanly on Postgres; the test suite
+      # itself runs on in-memory SQLite (config.settings.test) via pytest.
       - name: Check migrations apply (Postgres)
         run: python manage.py migrate --noinput
+        env:
+          DJANGO_SETTINGS_MODULE: config.settings.dev
 
       - name: Run test suite
-        run: python manage.py test apps --verbosity 2
+        run: pytest --cov=apps --cov-report=term-missing --cov-fail-under=85
 
   docker-build:
     runs-on: ubuntu-latest

@@ -1,4 +1,5 @@
 from django.test import TestCase
+
 from notifications.delivery import DeliveryService, StdoutAdapter
 from notifications.models import NotificationEvent, NotificationRecord
 from users.models import Facility, User

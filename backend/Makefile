@@ -7,7 +7,7 @@
 COMPOSE_FILE = -f compose.yaml
 
 # Phony targets tell Make that these are not files. This is a best practice.
-.PHONY: help up up-build down down-vol setup migrate test shell logs format lint qa superuser
+.PHONY: help up up-build down down-vol setup migrate test coverage shell logs format lint qa superuser
 
 # --- High-Level Commands ---
 
@@ -41,11 +41,11 @@ logs: ## 📜 Follow logs for the web service
 
 # --- Code Quality ---
 
-format: ## 🎨 Auto-formats all Python code
-	@echo "Formatting code with black and isort..."
+format: ## 🎨 Auto-format and fix lint issues with ruff
+	@echo "Formatting code with ruff..."
 	docker compose $(COMPOSE_FILE) run --rm lint "./scripts/format.sh"
 
-lint: ## 🔎 Check for linting errors and formatting issues
+lint: ## 🔎 Check for linting errors and formatting issues (ruff)
 	@echo "Running lint and format checks..."
 	docker compose $(COMPOSE_FILE) run --rm lint
 
@@ -58,9 +58,13 @@ migrate: ## 🏃 Run database migrations
 	@echo "Running database migrations..."
 	docker compose $(COMPOSE_FILE) exec web python manage.py migrate
 
-test: ## 🧪 Run the Django test suite
+test: ## 🧪 Run the test suite with pytest
 	@echo "Running tests..."
 	docker compose $(COMPOSE_FILE) run --rm test
+
+coverage: ## 📊 Run tests with a coverage report
+	@echo "Running tests with coverage..."
+	docker compose $(COMPOSE_FILE) run --rm test pytest --cov=apps --cov-report=term-missing
 
 shell: ## 💻 Open a shell inside the web container
 	@echo "Starting a new shell..."
